@@ -52,6 +52,7 @@ public class ScreenCatcherWindow extends JFrame {
 
 	// 常量
 	private static final int MAX_MILLIS = 10 * 1000; // 可录制最大毫秒数
+	private static final int RECORD_SLEEP = 2;       // 录制每帧休眠
 	private static final int DV_MAX_LEN = 20;        // DV框线最大长度
 	private static final int DV_DIV = 4;             // DV框边长与框线的比值
 
@@ -76,8 +77,11 @@ public class ScreenCatcherWindow extends JFrame {
 	private List<BufferedImage> buffers; // 录屏序列
 	private boolean starting;            // 是否正在录制
 	private JDialog dvDialog;            // DV框组件
-	private DVImage dvImage;             // DV框背景
-	private BufferedImage recImage;      // DV rec
+	private JLabel dvImage;              // DV框背景
+	private JLabel dvRecImage;           // DV rec背景
+	private BufferedImage recImage;      // DV rec资源
+//	private JDialog glassDialog;         // 放大镜组件
+//	private JLabel glassImage;           // 放大镜背景
 
 	// 组件
 	public static ProgressWindow progressWindow;
@@ -184,6 +188,7 @@ public class ScreenCatcherWindow extends JFrame {
 			}
 		});
 
+		// 区域选择
 		bgDialog = new JDialog();
 		bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
 		cursor = 1;
@@ -204,16 +209,23 @@ public class ScreenCatcherWindow extends JFrame {
 			}
 		});
 
+		// 录制DV框
 		dvDialog = new JDialog();
-		dvImage = new DVImage();
+		dvImage = new JLabel();
+		dvRecImage = new JLabel();
 		dvDialog.setUndecorated(true);
 		dvDialog.setAlwaysOnTop(true);
 		dvDialog.setResizable(false);
 		dvDialog.setFocusable(false);
-		dvDialog.getContentPane().setLayout(new BorderLayout());
-		dvDialog.getContentPane().add(BorderLayout.CENTER, dvImage);
+		dvDialog.getContentPane().setLayout(null);
+		dvDialog.getContentPane().add(dvRecImage);
+		dvDialog.getContentPane().add(dvImage);
 		AWTUtilities.setWindowOpaque(dvDialog, false);
 		recImage = ImageIO.read(getClass().getResourceAsStream("/pic/pic_rec.png"));
+
+		// 放大镜
+//		glassDialog = new JDialog();
+//		glassImage = new JLabel();
 	}
 
 	public ScreenCatcherWindow() throws Exception {
@@ -227,7 +239,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().setLayout(null);
 		setTitle("GIF屏幕录像宗师");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(600, 300, 432, 288);
+		setBounds(600, 300, 422, 274);
 		setAlwaysOnTop(true);
 		setResizable(false);
 
@@ -326,7 +338,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().add(btn_end);
 
 		sp_1 = new JScrollPane();
-		sp_1.setBounds(12, 142, 388, 98);
+		sp_1.setBounds(12, 142, 388, 89);
 		getContentPane().add(sp_1);
 
 		ta_help = new JTextArea();
@@ -355,14 +367,22 @@ public class ScreenCatcherWindow extends JFrame {
 		btn_start.setText("录制中...");
 
 		// 设置DV框
-		dvDialog.setBounds(rectangle);
+		dvDialog.setBounds(rectangle.x - 1, rectangle.y - 1, rectangle.width + 2, rectangle.height + 2);
+		dvImage.setBounds(0, 0, dvDialog.getWidth(), dvDialog.getHeight());
+		dvRecImage.setBounds(0, 0, dvDialog.getWidth(), dvDialog.getHeight());
+		dvRecImage.setVisible(false);
 		BufferedImage b = new BufferedImage(dvDialog.getWidth(), dvDialog.getHeight(), BufferedImage.TYPE_INT_ARGB);
-		setDVInterface(b);
+		setDVInterface(b, true);
 		dvImage.setIcon(new ImageIcon(b));
+		BufferedImage b2 = new BufferedImage(dvDialog.getWidth(), dvDialog.getHeight(), BufferedImage.TYPE_INT_ARGB);
+		setDVInterface(b2, false);
+		dvRecImage.setIcon(new ImageIcon(b2));
 		dvDialog.setVisible(true);
 
-		int delay = 1000 / ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames();
+		int num = 0;
+		int frames = ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames();
 		long begin = System.currentTimeMillis();
+		int delay = 1000 / frames;
 		long lastTime = 0;
 		while (starting) {
 			long currentTime = System.currentTimeMillis();
@@ -372,10 +392,25 @@ public class ScreenCatcherWindow extends JFrame {
 			}
 			if ((currentTime - lastTime) >= delay) {
 				lastTime = currentTime;
+				// REC闪烁，每秒的截屏间隔中，只有最后一个间隔显示
+				num++;
+				boolean setVisable = false;
+				if (num >= (frames - 1)) {
+					num = 0;
+					setVisable = true;
+				} else {
+					if (dvRecImage.isVisible()) {
+						dvRecImage.setVisible(false);
+					}
+				}
+				// 截屏
 				buffers.add(robot.createScreenCapture(rectangle));
+				if (setVisable) {
+					dvRecImage.setVisible(true);
+				}
 			}
 			try {
-				Thread.sleep(2);
+				Thread.sleep(RECORD_SLEEP);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -437,7 +472,7 @@ public class ScreenCatcherWindow extends JFrame {
 	 * 
 	 * @param b
 	 */
-	private void setDVInterface(BufferedImage b) {
+	private void setDVInterface(BufferedImage b, boolean frame) {
 		int x1 = b.getMinX();
 		int y1 = b.getMinY();
 		int w = b.getWidth();
@@ -448,19 +483,21 @@ public class ScreenCatcherWindow extends JFrame {
 		int len = Math.min(w, h) / DV_DIV;
 		len = len > DV_MAX_LEN ? DV_MAX_LEN : len;
 
-		for (int x = x1; x <= x2; x++) {
-			for (int y = y1; y <= y2; y++) {
-				if (inDVLine(x, y, len, x1, y1, x2, y2)) {
-					b.setRGB(x, y, 0xffb0b0b0);
-				} else {
-					b.setRGB(x, y, 0x00ff0000);
+		if (frame) {
+			for (int x = x1; x <= x2; x++) {
+				for (int y = y1; y <= y2; y++) {
+					if (inDVLine(x, y, len, x1, y1, x2, y2)) {
+						b.setRGB(x, y, 0xffb0b0b0);
+					} else {
+						b.setRGB(x, y, 0x00ff0000);
+					}
 				}
 			}
-		}
-
-		for (int i = recImage.getMinX(); i < recImage.getMinX() + recImage.getWidth(); i++) {
-			for (int j = recImage.getMinY(); j < recImage.getMinY() + recImage.getHeight(); j++) {
-				b.setRGB(i + len / 2, j + len / 2, recImage.getRGB(i, j));
+		} else {
+			for (int i = recImage.getMinX(); i < recImage.getMinX() + recImage.getWidth(); i++) {
+				for (int j = recImage.getMinY(); j < recImage.getMinY() + recImage.getHeight(); j++) {
+					b.setRGB(i + len / 2, j + len / 2, recImage.getRGB(i, j));
+				}
 			}
 		}
 	}
@@ -490,6 +527,9 @@ public class ScreenCatcherWindow extends JFrame {
 		return s == null || "".equals(s);
 	}
 
+	/**
+	 * 颜色变暗
+	 */
 	private int rgbToDark(int rgb) {
 		float f = 0.65f;
 		rgb = rgb & 0xffffff;
@@ -533,7 +573,7 @@ public class ScreenCatcherWindow extends JFrame {
 				// 绘制文字
 				String str = Integer.toString(w) + " × " + Integer.toString(h);
 				g.setFont(new Font("Consola", Font.BOLD, 16));
-				g.drawString(str, x + (int) w / 2 - 15, y + (int) h / 2);
+				g.drawString(str, x + (int) w / 2 - 28, y + (int) h / 2);
 				tf_areaW.setText(w + "");
 				tf_areaH.setText(h + "");
 				// 绘制背景
@@ -590,42 +630,6 @@ public class ScreenCatcherWindow extends JFrame {
 			y2_l = 0;
 			repaint();
 		}
-	}
-
-	/**
-	 * @author liyiyue
-	 * @date 2017年9月26日上午10:11:12
-	 * @desc DV框背景
-	 */
-	private class DVImage extends JLabel {
-		private static final long serialVersionUID = 1L;
-		// int x;
-		// int y;
-		// int w;
-		// int h;
-		// int dvLen;
-		//
-		// @Override
-		// public void paintComponent(Graphics g) {
-		// super.paintComponent(g);
-		// g.setColor(Color.RED);
-		// // 绘制文字
-		// String str = "REC";
-		// g.setFont(new Font("Consolas", Font.BOLD, 12));
-		// g.drawString(str, x + dvLen, y + dvLen);
-		// // 绘制圆点
-		// g.fillOval(x + dvLen + 22, y + dvLen / 2 + 1, 8, 8);
-		// }
-		//
-		// @Override
-		// public void setBounds(int x, int y, int width, int height) {
-		// super.setBounds(x, y, width, height);
-		// this.x = x;
-		// this.y = y;
-		// this.w = width;
-		// this.h = height;
-		// repaint();
-		// }
 	}
 
 	/**

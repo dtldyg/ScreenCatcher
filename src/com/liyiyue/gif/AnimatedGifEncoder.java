@@ -59,7 +59,7 @@ public class AnimatedGifEncoder {
 
 	protected int colorDepth; // number of bit planes
 
-	protected byte[] colorTab; // RGB palette
+	protected byte[] colorTab; // RGB palette —— 颜色索引表：[r,g,b, r,g,b, r,g,b, ...]
 
 	protected boolean[] usedEntry = new boolean[256]; // active palette entries
 
@@ -153,14 +153,14 @@ public class AnimatedGifEncoder {
 			getImagePixels(); // convert to correct format if necessary
 			analyzePixels(); // build color table & map pixels
 			if (firstFrame) {
-				writeLSD(); // logical screen descriptior
-				writePalette(); // global color table
+				writeLSD(); // logical screen descriptior —— 逻辑屏幕标识符
+				writePalette(); // global color table —— 全局颜色表
 				if (repeat >= 0) {
-					// use NS app extension to indicate reps
+					// use NS app extension to indicate reps —— 应用程序扩展(Application Extension)
 					writeNetscapeExt();
 				}
 			}
-			writeGraphicCtrlExt(); // write graphic control extension
+			writeGraphicCtrlExt(); // write graphic control extension —— 图形控制扩展(Graphic Control Extension)
 			writeImageDesc(); // image descriptor
 			if (!firstFrame) {
 				writePalette(); // local color table
@@ -265,7 +265,7 @@ public class AnimatedGifEncoder {
 		closeStream = false;
 		out = os;
 		try {
-			writeString("GIF89a"); // header
+			writeString("GIF89a"); // header —— 署名和版本号
 		} catch (IOException e) {
 			ok = false;
 		}
@@ -370,11 +370,12 @@ public class AnimatedGifEncoder {
 
 	/**
 	 * Writes Graphic Control Extension
+	 * 图形控制扩展(Graphic Control Extension)
 	 */
 	protected void writeGraphicCtrlExt() throws IOException {
-		out.write(0x21); // extension introducer
-		out.write(0xf9); // GCE label
-		out.write(4); // data block size
+		out.write(0x21); // extension introducer —— 标识这是一个扩展块，固定值0x21
+		out.write(0xf9); // GCE label —— 标识这是一个图形控制扩展块，固定值0xF9
+		out.write(4); // data block size —— 块大小 - 不包括块终结器，固定值4
 		int transp, disp;
 		if (transparent == null) {
 			transp = 0;
@@ -389,12 +390,12 @@ public class AnimatedGifEncoder {
 		disp <<= 2;
 
 		// packed fields
-		out.write(0 | // 1:3 reserved
-				disp | // 4:6 disposal
-				0 | // 7 user input - 0 = none
-				transp); // 8 transparency flag
+		out.write(0 | // 1:3 reserved —— 保留位
+				disp | // 4:6 disposal —— 处置方法
+				0 | // 7 user input - 0 = none —— 等待用户输入再进行
+				transp); // 8 transparency flag —— 是否使用透明颜色
 
-		writeShort(delay); // delay x 1/100 sec
+		writeShort(delay); // delay x 1/100 sec —— 延迟时间
 		out.write(transIndex); // transparent color index
 		out.write(0); // block terminator
 	}
@@ -430,23 +431,24 @@ public class AnimatedGifEncoder {
 		writeShort(width);
 		writeShort(height);
 		// packed fields
-		out.write((0x80 | // 1 : global color table flag = 1 (gct used)
-		0x70 | // 2-4 : color resolution = 7
+		out.write((0x80 | // 1 : global color table flag = 1 (gct used) —— 有全局颜色表
+		0x70 | // 2-4 : color resolution = 7 —— 颜色深度：8位
 		0x00 | // 5 : gct sort flag = 0
-		palSize)); // 6-8 : gct size
+		palSize)); // 6-8 : gct size —— 全局颜色表大小：2^(palSize + 1)，最大2^8=256
 
-		out.write(0); // background color index
-		out.write(0); // pixel aspect ratio - assume 1:1
+		out.write(0); // background color index —— 背景色索引
+		out.write(0); // pixel aspect ratio - assume 1:1 —— 像素宽高比
 	}
 
 	/**
 	 * Writes Netscape application extension to define repeat count.
+	 * 应用程序扩展(Application Extension)
 	 */
 	protected void writeNetscapeExt() throws IOException {
 		out.write(0x21); // extension introducer
 		out.write(0xff); // app extension label
 		out.write(11); // block size
-		writeString("NETSCAPE" + "2.0"); // app id + auth code
+		writeString("NETSCAPE" + "2.0"); // app id + auth code —— 应用程序标识符（8字节） + 应用程序鉴别码（3字节）
 		out.write(3); // sub-block size
 		out.write(1); // loop sub-block id
 		writeShort(repeat); // loop count (extra iterations, 0=repeat forever)
