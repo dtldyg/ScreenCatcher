@@ -73,7 +73,9 @@ public class AnimatedGifEncoder {
 
 	protected boolean sizeSet = false; // if false, get size from first frame
 
-	protected int sample = 10; // default sample interval for quantizer
+	protected int sample = 10; // default sample interval for quantizer —— 貌似是取样步长
+	
+	protected byte paletteBits = 8; // 颜色表位数，范围[2, 8]，默认8位
 
 	/**
 	 * Sets the delay time between each frame, or changes it for subsequent frames
@@ -153,7 +155,7 @@ public class AnimatedGifEncoder {
 			getImagePixels(); // convert to correct format if necessary
 			analyzePixels(); // build color table & map pixels
 			if (firstFrame) {
-				writeLSD(); // logical screen descriptior —— 逻辑屏幕标识符
+				writeLSD(); // logical screen descriptior —— 逻辑屏幕标识符(Logical Screen Descriptor)
 				writePalette(); // global color table —— 全局颜色表
 				if (repeat >= 0) {
 					// use NS app extension to indicate reps —— 应用程序扩展(Application Extension)
@@ -161,11 +163,11 @@ public class AnimatedGifEncoder {
 				}
 			}
 			writeGraphicCtrlExt(); // write graphic control extension —— 图形控制扩展(Graphic Control Extension)
-			writeImageDesc(); // image descriptor
+			writeImageDesc(); // image descriptor —— 图象标识符(Image Descriptor)
 			if (!firstFrame) {
-				writePalette(); // local color table
+				writePalette(); // local color table —— 局部颜色列表(Local Color Table)
 			}
-			writePixels(); // encode and write pixel data
+			writePixels(); // encode and write pixel data —— 基于颜色列表的图象数据(Table-Based Image Data)
 			firstFrame = false;
 		} catch (IOException e) {
 			ok = false;
@@ -231,6 +233,16 @@ public class AnimatedGifEncoder {
 	public void setQuality(int quality) {
 		if (quality < 1) quality = 1;
 		sample = quality;
+	}
+	
+	/**
+	 * 设置颜色索引表位数
+	 */
+	public void setPaletteBits(byte bits) {
+		if (bits < 2 || bits > 8) {
+			bits = 8;
+		}
+		paletteBits = bits;
 	}
 
 	/**
@@ -298,7 +310,7 @@ public class AnimatedGifEncoder {
 		int len = pixels.length;
 		int nPix = len / 3;
 		indexedPixels = new byte[nPix];
-		NeuQuant nq = new NeuQuant(pixels, len, sample);
+		MyNeuQuant nq = new MyNeuQuant(pixels, len, sample, paletteBits);
 		// initialize quantizer
 		colorTab = nq.process(); // create reduced palette
 		// convert map from BGR to RGB
@@ -396,7 +408,7 @@ public class AnimatedGifEncoder {
 				transp); // 8 transparency flag —— 是否使用透明颜色
 
 		writeShort(delay); // delay x 1/100 sec —— 延迟时间
-		out.write(transIndex); // transparent color index
+		out.write(transIndex); // transparent color index —— 透明色索引值
 		out.write(0); // block terminator
 	}
 
@@ -405,9 +417,9 @@ public class AnimatedGifEncoder {
 	 */
 	protected void writeImageDesc() throws IOException {
 		out.write(0x2c); // image separator
-		writeShort(0); // image position x,y = 0,0
+		writeShort(0); // image position x,y = 0,0 —— X，Y方向偏移量
 		writeShort(0);
-		writeShort(width); // image size
+		writeShort(width); // image size —— 图象宽度，高度
 		writeShort(height);
 		// packed fields
 		if (firstFrame) {
@@ -415,11 +427,11 @@ public class AnimatedGifEncoder {
 			out.write(0);
 		} else {
 			// specify normal LCT
-			out.write(0x80 | // 1 local color table 1=yes
-					0 | // 2 interlace - 0=no
-					0 | // 3 sorted - 0=no
-					0 | // 4-5 reserved
-					palSize); // 6-8 size of color table
+			out.write(0x80 | // 1 local color table 1=yes —— 是否有局部颜色表
+					0 | // 2 interlace - 0=no —— 是否使用交织方式
+					0 | // 3 sorted - 0=no —— 局部颜色表是否分类排序
+					0 | // 4-5 reserved —— 保留位
+					palSize); // 6-8 size of color table —— 局部颜色表大小：2^(palSize + 1)，最大2^8=256
 		}
 	}
 
@@ -470,7 +482,7 @@ public class AnimatedGifEncoder {
 	 * Encodes and writes pixel data
 	 */
 	protected void writePixels() throws IOException {
-		LZWEncoder encoder = new LZWEncoder(width, height, indexedPixels, colorDepth);
+		MyLZWEncoder encoder = new MyLZWEncoder(width, height, indexedPixels, colorDepth);
 		encoder.encode(out);
 	}
 
@@ -496,7 +508,7 @@ public class AnimatedGifEncoder {
 // Adapted from Jef Poskanzer's Java port by way of J. M. G. Elliott.
 // K Weiner 12/00
 
-class LZWEncoder {
+class MyLZWEncoder {
 
 	private static final int EOF = -1;
 
@@ -598,7 +610,7 @@ class LZWEncoder {
 	byte[] accum = new byte[256];
 
 	// ----------------------------------------------------------------------------
-	LZWEncoder(int width, int height, byte[] pixels, int color_depth) {
+	MyLZWEncoder(int width, int height, byte[] pixels, int color_depth) {
 		imgW = width;
 		imgH = height;
 		pixAry = pixels;
@@ -796,21 +808,21 @@ class LZWEncoder {
  */
 
 // Ported to Java 12/00 K Weiner
-class NeuQuant {
+class MyNeuQuant {
 
-	protected static final int netsize = 256; /* number of colours used */
+	protected int netsize = 256; /* number of colours used */ // 颜色表长度
 
 	/* four primes near 500 - assume no image has a length so large */
 	/* that it is divisible by all four primes */
-	protected static final int prime1 = 499;
+	protected int prime1 = 499;
 
-	protected static final int prime2 = 491;
+	protected int prime2 = 491;
 
-	protected static final int prime3 = 487;
+	protected int prime3 = 487;
 
-	protected static final int prime4 = 503;
+	protected int prime4 = 503;
 
-	protected static final int minpicturebytes = (3 * prime4);
+	protected int minpicturebytes = (3 * prime4);
 
 	/* minimum size for input image */
 
@@ -826,60 +838,60 @@ class NeuQuant {
 	 * Network Definitions -------------------
 	 */
 
-	protected static final int maxnetpos = (netsize - 1);
+	protected int maxnetpos;
 
-	protected static final int netbiasshift = 4; /* bias for colour values */
+	protected int netbiasshift = 4; /* bias for colour values */
 
-	protected static final int ncycles = 100; /* no. of learning cycles */
+	protected int ncycles = 100; /* no. of learning cycles */
 
 	/* defs for freq and bias */
-	protected static final int intbiasshift = 16; /* bias for fractions */
+	protected int intbiasshift = 16; /* bias for fractions */
 
-	protected static final int intbias = (((int) 1) << intbiasshift);
+	protected int intbias = (((int) 1) << intbiasshift);
 
-	protected static final int gammashift = 10; /* gamma = 1024 */
+	protected int gammashift = 10; /* gamma = 1024 */
 
-	protected static final int gamma = (((int) 1) << gammashift);
+	protected int gamma = (((int) 1) << gammashift);
 
-	protected static final int betashift = 10;
+	protected int betashift = 10;
 
-	protected static final int beta = (intbias >> betashift); /* beta = 1/1024 */
+	protected int beta = (intbias >> betashift); /* beta = 1/1024 */
 
-	protected static final int betagamma = (intbias << (gammashift - betashift));
+	protected int betagamma = (intbias << (gammashift - betashift));
 
 	/* defs for decreasing radius factor */
-	protected static final int initrad = (netsize >> 3); /*
+	protected int initrad; /*
 														 * for 256 cols, radius
 														 * starts
 														 */
 
-	protected static final int radiusbiasshift = 6; /* at 32.0 biased by 6 bits */
+	protected int radiusbiasshift = 6; /* at 32.0 biased by 6 bits */
 
-	protected static final int radiusbias = (((int) 1) << radiusbiasshift);
+	protected int radiusbias = (((int) 1) << radiusbiasshift);
 
-	protected static final int initradius = (initrad * radiusbias); /*
+	protected int initradius; /*
 																	 * and
 																	 * decreases
 																	 * by a
 																	 */
 
-	protected static final int radiusdec = 30; /* factor of 1/30 each cycle */
+	protected int radiusdec = 30; /* factor of 1/30 each cycle */
 
 	/* defs for decreasing alpha factor */
-	protected static final int alphabiasshift = 10; /* alpha starts at 1.0 */
+	protected int alphabiasshift = 10; /* alpha starts at 1.0 */
 
-	protected static final int initalpha = (((int) 1) << alphabiasshift);
+	protected int initalpha = (((int) 1) << alphabiasshift);
 
 	protected int alphadec; /* biased by 10 bits */
 
 	/* radbias and alpharadbias used for radpower calculation */
-	protected static final int radbiasshift = 8;
+	protected int radbiasshift = 8;
 
-	protected static final int radbias = (((int) 1) << radbiasshift);
+	protected int radbias = (((int) 1) << radbiasshift);
 
-	protected static final int alpharadbshift = (alphabiasshift + radbiasshift);
+	protected int alpharadbshift = (alphabiasshift + radbiasshift);
 
-	protected static final int alpharadbias = (((int) 1) << alpharadbshift);
+	protected int alpharadbias = (((int) 1) << alpharadbshift);
 
 	/*
 	 * Types and Global Variables --------------------------
@@ -898,12 +910,12 @@ class NeuQuant {
 
 	/* for network lookup - really 256 */
 
-	protected int[] bias = new int[netsize];
+	protected int[] bias;
 
 	/* bias and freq arrays for learning */
-	protected int[] freq = new int[netsize];
+	protected int[] freq;
 
-	protected int[] radpower = new int[initrad];
+	protected int[] radpower;
 
 	/* radpower for precomputation */
 
@@ -911,7 +923,7 @@ class NeuQuant {
 	 * Initialise network in range (0,0,0) to (255,255,255) and set parameters
 	 * -----------------------------------------------------------------------
 	 */
-	public NeuQuant(byte[] thepic, int len, int sample) {
+	public MyNeuQuant(byte[] thepic, int len, int sample, byte bits) {
 
 		int i;
 		int[] p;
@@ -919,6 +931,13 @@ class NeuQuant {
 		thepicture = thepic;
 		lengthcount = len;
 		samplefac = sample;
+		netsize = (int) Math.pow(2, bits);
+		maxnetpos = (netsize - 1);
+		initrad = (netsize >> 3);
+		initradius = (initrad * radiusbias);
+		radpower = new int[initrad];
+		bias = new int[netsize];
+		freq = new int[netsize];
 
 		network = new int[netsize][];
 		for (i = 0; i < netsize; i++) {

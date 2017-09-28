@@ -32,13 +32,16 @@ public class JpgToGifUtil {
 		}
 	}
 
-	public static void bufferToGif(BufferedImage fromBuffers[], String toGif, int frameMillis) {
+	/**
+	 * 将bufferedImage数组转为gif，可设置颜色质量
+	 */
+	public static void bufferToGif(BufferedImage fromBuffers[], String toGif, int frameMillis, byte colorBits) {
 		try {
 			AnimatedGifEncoder gifEncoder = new AnimatedGifEncoder();
 			gifEncoder.setRepeat(0);
 			gifEncoder.start(toGif);
 			// 设置质量参数
-			
+			gifEncoder.setPaletteBits(colorBits);
 			ScreenCatcherWindow.progressWindow.progressBar.setMaximum(fromBuffers.length);
 			ScreenCatcherWindow.progressWindow.progressBar.setValue(0);
 			ScreenCatcherWindow.progressWindow.setVisible(true);
@@ -51,7 +54,15 @@ public class JpgToGifUtil {
 			gifEncoder.finish();
 		} catch (Exception e) {
 			System.out.println("bufferToGif Failed:");
+			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * 将bufferedImage数组转为gif，默认最高颜色质量（8位256色，每帧局部颜色表）
+	 */
+	public static void bufferToGif(BufferedImage fromBuffers[], String toGif, int frameMillis) {
+		bufferToGif(fromBuffers, toGif, frameMillis, (byte) 8);
 	}
 
 }

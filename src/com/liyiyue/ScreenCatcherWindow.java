@@ -15,10 +15,15 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -33,9 +38,13 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.UIManager;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import com.liyiyue.gif.JpgToGifUtil;
 import com.liyiyue.util.FontUtil;
@@ -56,6 +65,8 @@ public class ScreenCatcherWindow extends JFrame {
 	private static final int DV_MAX_LEN = 20;        // DV框线最大长度
 	private static final int DV_DIV = 4;             // DV框边长与框线的比值
 	private static final int GLASS_LEN = 161;        // 放大镜边长
+	private static final int GLASS_INFO_W = 110;     // 放大镜信息长
+	private static final int GLASS_INFO_H = 20;      // 放大镜信息宽
 	private static final int MOUSE_SLOW = 4;         // 鼠标慢速移动
 
 	// 全局参数
@@ -91,6 +102,7 @@ public class ScreenCatcherWindow extends JFrame {
 	private BufferedImage gImage;        // 放大镜背景图像
 	private JLabel glassInfo;            // 放大镜说明文字
 	private JLabel glassInfoBg;          // 放大镜说明背景
+	private Map<Integer, Long> sizeMap;  // 计算体积的map，字节/1920*1080/帧
 
 	// 组件
 	public static ProgressWindow progressWindow;
@@ -108,6 +120,11 @@ public class ScreenCatcherWindow extends JFrame {
 	private JButton btn_end;
 	private JScrollPane sp_1;
 	private JTextArea ta_help;
+	private JLabel lb_6;
+	private JSlider sd_qualityBits;
+	private JLabel lb_7;
+	private JLabel lb_8;
+	private JLabel lb_size;
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -133,6 +150,14 @@ public class ScreenCatcherWindow extends JFrame {
 		mouse_x_i = -1;
 		mouse_y_i = -1;
 		mouse_shift = false;
+		sizeMap = new HashMap<Integer, Long>();
+		sizeMap.put(2, 143353l);
+		sizeMap.put(3, 209516l);
+		sizeMap.put(4, 316155l);
+		sizeMap.put(5, 476788l);
+		sizeMap.put(6, 740967l);
+		sizeMap.put(7, 942649l);
+		sizeMap.put(8, 1173570l);
 
 		// 放大镜
 		glassImage = new JLabel();
@@ -140,13 +165,13 @@ public class ScreenCatcherWindow extends JFrame {
 		gImage = new BufferedImage(GLASS_LEN, GLASS_LEN, BufferedImage.TYPE_INT_ARGB);
 		glassInfo = new JLabel(" 按住shift屏住呼吸");
 		glassInfo.setFont(new Font("微软雅黑", Font.BOLD, 12));
-		glassInfo.setBounds(0, 0, 110, 20);
+		glassInfo.setBounds(0, 0, GLASS_INFO_W, GLASS_INFO_H);
 		glassInfo.setForeground(Color.WHITE);
 		glassInfoBg = new JLabel();
-		glassInfoBg.setBounds(0, 0, 110, 20);
-		BufferedImage gInfo = new BufferedImage(110, 20, BufferedImage.TYPE_INT_ARGB);
-		for (int i = 0; i < 110; i++) {
-			for (int j = 0; j < 20; j++) {
+		glassInfoBg.setBounds(0, 0, GLASS_INFO_W, GLASS_INFO_H);
+		BufferedImage gInfo = new BufferedImage(GLASS_INFO_W, GLASS_INFO_H, BufferedImage.TYPE_INT_ARGB);
+		for (int i = 0; i < GLASS_INFO_W; i++) {
+			for (int j = 0; j < GLASS_INFO_H; j++) {
 				gInfo.setRGB(i, j, 0x88000000);
 			}
 		}
@@ -190,24 +215,7 @@ public class ScreenCatcherWindow extends JFrame {
 			// 鼠标按下移动
 			@Override
 			public void mouseDragged(MouseEvent e) {
-				if (mouse_x_f < 0 && mouse_y_f < 0 && mouse_x_i < 0 && mouse_y_i < 0) {
-					mouse_x_f = e.getX();
-					mouse_y_f = e.getY();
-					mouse_x_i = e.getX();
-					mouse_y_i = e.getY();
-				}
-				if (mouse_shift) {
-					mouse_x_f = (e.getX() - mouse_x_i) * 1.0f / MOUSE_SLOW + mouse_x_f;
-					mouse_y_f = (e.getY() - mouse_y_i) * 1.0f / MOUSE_SLOW + mouse_y_f;
-					mouse_x_i = (int) mouse_x_f;
-					mouse_y_i = (int) mouse_y_f;
-					robot.mouseMove(mouse_x_i, mouse_y_i);
-				} else {
-					mouse_x_f = e.getX();
-					mouse_y_f = e.getY();
-					mouse_x_i = e.getX();
-					mouse_y_i = e.getY();
-				}
+				mouseSlowMove(e);
 				if (mouse_move) {
 					int tmp_x = mouse_x_i - mouse_x_r;
 					int tmp_y = mouse_y_i - mouse_y_r;
@@ -221,36 +229,13 @@ public class ScreenCatcherWindow extends JFrame {
 				} else {
 					bgImg.drawRectangle(area_x, area_y, mouse_x_i, mouse_y_i);
 				}
-				glassImage.setLocation(mouse_x_i + 15, mouse_y_i + 20);
-				glassInfo.setLocation(mouse_x_i + 15, mouse_y_i + 20 + GLASS_LEN);
-				glassInfoBg.setLocation(mouse_x_i + 15, mouse_y_i + 20 + GLASS_LEN);
-				repaintGlass(mouse_x_i, mouse_y_i);
+				setGlassLocationAndRepaint();
 			}
 
 			// 鼠标松开移动
 			@Override
 			public void mouseMoved(MouseEvent e) {
-				if (mouse_x_f < 0 && mouse_y_f < 0 && mouse_x_i < 0 && mouse_y_i < 0) {
-					mouse_x_f = e.getX();
-					mouse_y_f = e.getY();
-					mouse_x_i = e.getX();
-					mouse_y_i = e.getY();
-				}
-				if (mouse_shift) {
-					System.out.print(e.getX() + "," + e.getY() + "\t");
-					System.out.print(mouse_x_f + "," + mouse_y_f + "\t");
-					System.out.println(mouse_x_i + "," + mouse_y_i);
-					mouse_x_f = (e.getX() - mouse_x_i) * 1.0f / MOUSE_SLOW + mouse_x_f;
-					mouse_y_f = (e.getY() - mouse_y_i) * 1.0f / MOUSE_SLOW + mouse_y_f;
-					mouse_x_i = (int) mouse_x_f;
-					mouse_y_i = (int) mouse_y_f;
-					robot.mouseMove(mouse_x_i, mouse_y_i);
-				} else {
-					mouse_x_f = e.getX();
-					mouse_y_f = e.getY();
-					mouse_x_i = e.getX();
-					mouse_y_i = e.getY();
-				}
+				mouseSlowMove(e);
 				if (bgImg.inArea(mouse_x_i, mouse_y_i)) {
 					if (cursor != 2) {
 						cursor = 2;
@@ -262,10 +247,7 @@ public class ScreenCatcherWindow extends JFrame {
 						bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 					}
 				}
-				glassImage.setLocation(mouse_x_i + 15, mouse_y_i + 20);
-				glassInfo.setLocation(mouse_x_i + 15, mouse_y_i + 20 + GLASS_LEN);
-				glassInfoBg.setLocation(mouse_x_i + 15, mouse_y_i + 20 + GLASS_LEN);
-				repaintGlass(mouse_x_i, mouse_y_i);
+				setGlassLocationAndRepaint();
 			}
 		});
 		// 区域选择
@@ -287,6 +269,7 @@ public class ScreenCatcherWindow extends JFrame {
 				super.keyReleased(e);
 				if (e.getKeyCode() == KeyEvent.VK_ESCAPE || e.getKeyCode() == KeyEvent.VK_ENTER) {
 					bgDialog.setVisible(false);
+					refreshQualitySize();
 				}
 				if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
 					mouse_shift = false;
@@ -328,7 +311,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().setLayout(null);
 		setTitle("GIF屏幕录像宗师");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(600, 300, 422, 274);
+		setBounds(600, 300, 422, 309);
 		setAlwaysOnTop(true);
 		setResizable(false);
 
@@ -403,6 +386,47 @@ public class ScreenCatcherWindow extends JFrame {
 		lb_5.setBounds(215, 76, 65, 23);
 		getContentPane().add(lb_5);
 
+		lb_6 = new JLabel("图像质量：");
+		lb_6.setBounds(12, 109, 65, 23);
+		getContentPane().add(lb_6);
+
+		lb_7 = new JLabel("高");
+		lb_7.setBounds(85, 109, 17, 23);
+		getContentPane().add(lb_7);
+
+		lb_8 = new JLabel("低");
+		lb_8.setBounds(222, 109, 17, 23);
+		getContentPane().add(lb_8);
+
+		lb_size = new JLabel("");
+		lb_size.setHorizontalAlignment(SwingConstants.RIGHT);
+		lb_size.setBounds(249, 109, 151, 23);
+		getContentPane().add(lb_size);
+
+		sd_qualityBits = new JSlider(2, 8, 8);
+		sd_qualityBits.setMajorTickSpacing(3);
+		sd_qualityBits.setMinorTickSpacing(1);
+		sd_qualityBits.setPaintTicks(true);
+		sd_qualityBits.setBounds(99, 108, 121, 30);
+		sd_qualityBits.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				refreshQualitySize();
+			}
+		});
+		sd_qualityBits.addMouseWheelListener(new MouseWheelListener() {
+			@Override
+			public void mouseWheelMoved(MouseWheelEvent arg0) {
+				if (arg0.getWheelRotation() == -1) {
+					sd_qualityBits.setValue(sd_qualityBits.getValue() - 1);
+				} else if (arg0.getWheelRotation() == 1) {
+					sd_qualityBits.setValue(sd_qualityBits.getValue() + 1);
+				}
+			}
+		});
+		getContentPane().add(sd_qualityBits);
+		sd_qualityBits.setValue(2);
+
 		btn_start = new JButton("开 始");
 		btn_start.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -414,7 +438,7 @@ public class ScreenCatcherWindow extends JFrame {
 				});
 			}
 		});
-		btn_start.setBounds(12, 109, 185, 23);
+		btn_start.setBounds(12, 142, 185, 23);
 		getContentPane().add(btn_start);
 
 		btn_end = new JButton("结 束");
@@ -423,11 +447,11 @@ public class ScreenCatcherWindow extends JFrame {
 				end();
 			}
 		});
-		btn_end.setBounds(215, 109, 185, 23);
+		btn_end.setBounds(215, 142, 185, 23);
 		getContentPane().add(btn_end);
 
 		sp_1 = new JScrollPane();
-		sp_1.setBounds(12, 142, 388, 89);
+		sp_1.setBounds(12, 175, 388, 89);
 		getContentPane().add(sp_1);
 
 		ta_help = new JTextArea();
@@ -514,7 +538,7 @@ public class ScreenCatcherWindow extends JFrame {
 	private void outPutGif() {
 		String savePath = tf_setPath.getText() + File.separator + "sc_" + System.currentTimeMillis() / 1000 + ".gif";
 		int playDelay = 1000 / ((FPSItem) cb_playFrames.getSelectedItem()).getFrames();
-		JpgToGifUtil.bufferToGif(buffers.toArray(new BufferedImage[0]), savePath, playDelay);
+		JpgToGifUtil.bufferToGif(buffers.toArray(new BufferedImage[0]), savePath, playDelay, (byte) bitTValue(sd_qualityBits.getValue()));
 	}
 
 	/**
@@ -527,20 +551,102 @@ public class ScreenCatcherWindow extends JFrame {
 	}
 
 	/**
+	 * 移动放大镜位置，并且绘制
+	 */
+	private void setGlassLocationAndRepaint() {
+		int x = 0;
+		int y = 0;
+		if (mouse_x_i + 15 + GLASS_LEN >= screen_w) {
+			x = mouse_x_i - 5 - GLASS_LEN;
+		} else {
+			x = mouse_x_i + 15;
+		}
+		if (mouse_y_i + 20 + GLASS_LEN + GLASS_INFO_H >= screen_h) {
+			y = mouse_y_i - 10 - GLASS_LEN - GLASS_INFO_H;
+		} else {
+			y = mouse_y_i + 20;
+		}
+		glassImage.setLocation(x, y);
+		glassInfo.setLocation(x, y + GLASS_LEN);
+		glassInfoBg.setLocation(x, y + GLASS_LEN);
+		repaintGlass(mouse_x_i, mouse_y_i);
+	}
+
+	/**
+	 * 刷新质量输出的文字
+	 */
+	private void refreshQualitySize() {
+		if (rectangle.width > 0 && rectangle.height > 0) {
+			int bits = sd_qualityBits.getValue();
+			bits = bitTValue(bits);
+			lb_size.setText("预计：" + getFormatSize(sizeMap.get(bits) * 5 * ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames() * rectangle.width * rectangle.height / 1920 / 1080)
+					+ " / 5秒");
+		}
+	}
+
+	/**
+	 * slider转换
+	 */
+	private int bitTValue(int bit) {
+		return 10 - bit;
+	}
+
+	/**
 	 * 绘制放大镜
 	 */
 	private void repaintGlass(int m_x, int m_y) {
 		int off = (GLASS_LEN - 1) / 2;
 		for (int i = 0; i < GLASS_LEN; i++) {
 			for (int j = 0; j < GLASS_LEN; j++) {
-				if (i == off || i == off + 1 || i == off + 2 || j == off || j == off + 1 || j == off + 2) {
+				if (i == off - 1 || i == off || i == off + 1 || j == off - 1 || j == off || j == off + 1) {
 					gImage.setRGB(i, j, 0xff33bbbb);
 				} else {
-					gImage.setRGB(i, j, bImage.getRGB((i - off) / 3 + m_x, (j - off) / 3 + m_y));
+					int x = formatGlassPixel(i, off) + m_x;
+					int y = formatGlassPixel(j, off) + m_y;
+					if (x < 0 || x > screen_w - 1 || y < 0 || y > screen_h - 1) {
+						gImage.setRGB(i, j, 0x55000000);
+					} else {
+						gImage.setRGB(i, j, bImage.getRGB(x, y));
+					}
 				}
 			}
 		}
 		glassImage.setIcon(new ImageIcon(gImage));
+	}
+
+	/**
+	 * 放大镜读取像素时，需要偏移一下
+	 */
+	private int formatGlassPixel(int v, int off) {
+		if (v < off) {
+			return (v - (off + 1)) / 3;
+		} else {
+			return (v - (off - 1)) / 3;
+		}
+	}
+
+	/**
+	 * 鼠标缓慢移动
+	 */
+	private void mouseSlowMove(MouseEvent e) {
+		if (mouse_x_f < 0 && mouse_y_f < 0 && mouse_x_i < 0 && mouse_y_i < 0) {
+			mouse_x_f = e.getX();
+			mouse_y_f = e.getY();
+			mouse_x_i = e.getX();
+			mouse_y_i = e.getY();
+		}
+		if (mouse_shift) {
+			mouse_x_f = (e.getX() - mouse_x_i) * 1.0f / MOUSE_SLOW + mouse_x_f;
+			mouse_y_f = (e.getY() - mouse_y_i) * 1.0f / MOUSE_SLOW + mouse_y_f;
+			mouse_x_i = (int) mouse_x_f;
+			mouse_y_i = (int) mouse_y_f;
+			robot.mouseMove(mouse_x_i, mouse_y_i);
+		} else {
+			mouse_x_f = e.getX();
+			mouse_y_f = e.getY();
+			mouse_x_i = e.getX();
+			mouse_y_i = e.getY();
+		}
 	}
 
 	/**
@@ -633,6 +739,14 @@ public class ScreenCatcherWindow extends JFrame {
 		return s == null || "".equals(s);
 	}
 
+	public static DecimalFormat df = new DecimalFormat("#0.0");
+
+	public static String getFormatSize(long bytes) {
+		if (bytes < 1024) return bytes + "B";
+		if (bytes >= 1024 && bytes < 1024 * 1024) return df.format(((double) bytes) / 1024) + "KB";
+		return df.format(((double) bytes) / 1024 / 1024) + "MB";
+	}
+
 	/**
 	 * 颜色变暗
 	 */
@@ -717,8 +831,8 @@ public class ScreenCatcherWindow extends JFrame {
 		public void drawRectangle(int x1, int y1, int x2, int y2) {
 			x = Math.min(x1, x2);
 			y = Math.min(y1, y2);
-			w = Math.abs(x1 - x2);
-			h = Math.abs(y1 - y2);
+			w = Math.abs(x1 - x2) + 1;
+			h = Math.abs(y1 - y2) + 1;
 			repaint();
 		}
 
