@@ -1,6 +1,5 @@
 package com.liyiyue;
 
-import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -55,6 +54,7 @@ public class ScreenCatcherWindow extends JFrame {
 	private static final int RECORD_SLEEP = 2;       // 录制每帧休眠
 	private static final int DV_MAX_LEN = 20;        // DV框线最大长度
 	private static final int DV_DIV = 4;             // DV框边长与框线的比值
+	private static final int GLASS_LEN = 161;        // 放大镜边长
 
 	// 全局参数
 	private int area_x;         // 选框左上角x
@@ -80,8 +80,8 @@ public class ScreenCatcherWindow extends JFrame {
 	private JLabel dvImage;              // DV框背景
 	private JLabel dvRecImage;           // DV rec背景
 	private BufferedImage recImage;      // DV rec资源
-//	private JDialog glassDialog;         // 放大镜组件
-//	private JLabel glassImage;           // 放大镜背景
+	private JLabel glassImage;           // 放大镜
+	private BufferedImage gImage;        // 放大镜背景图像
 
 	// 组件
 	public static ProgressWindow progressWindow;
@@ -120,8 +120,15 @@ public class ScreenCatcherWindow extends JFrame {
 		rectangle = new Rectangle();
 		buffers = new ArrayList<BufferedImage>();
 
+		// 放大镜
+		glassImage = new JLabel("aaaa");
+		glassImage.setBounds(0, 0, GLASS_LEN, GLASS_LEN);
+		gImage = new BufferedImage(GLASS_LEN, GLASS_LEN, BufferedImage.TYPE_INT_ARGB);
+
 		// 初始化画布，监听鼠标按下、松开，以及移动
 		bgImg = new BackgroundImage();
+		bgImg.setSize(Toolkit.getDefaultToolkit().getScreenSize());
+		bgImg.setLocation(0, 0);
 		bgImg.addMouseListener(new MouseAdapter() {
 			// 鼠标按下
 			@Override
@@ -169,6 +176,8 @@ public class ScreenCatcherWindow extends JFrame {
 				} else {
 					bgImg.drawRectangle(area_x, area_y, e.getX(), e.getY());
 				}
+				glassImage.setLocation(e.getX() + 15, e.getY() + 20);
+				repaintGlass(e.getX(), e.getY());
 			}
 
 			// 鼠标松开移动
@@ -182,23 +191,29 @@ public class ScreenCatcherWindow extends JFrame {
 				} else {
 					if (cursor != 1) {
 						cursor = 1;
-						bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+						// FIXME
+						// bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+						bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 					}
 				}
+				glassImage.setLocation(e.getX() + 15, e.getY() + 20);
+				repaintGlass(e.getX(), e.getY());
 			}
 		});
-
 		// 区域选择
 		bgDialog = new JDialog();
-		bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+		// FIXME
+		// bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+		bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		cursor = 1;
 		bgDialog.setSize(Toolkit.getDefaultToolkit().getScreenSize());
 		bgDialog.setUndecorated(true);
 		bgDialog.setAlwaysOnTop(true);
 		bgDialog.setModal(true);
 		bgDialog.setResizable(false);
-		bgDialog.getContentPane().setLayout(new BorderLayout());
-		bgDialog.getContentPane().add(BorderLayout.CENTER, bgImg);
+		bgDialog.getContentPane().setLayout(null);
+		bgDialog.getContentPane().add(glassImage);
+		bgDialog.getContentPane().add(bgImg);
 		bgDialog.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyReleased(KeyEvent e) {
@@ -222,10 +237,6 @@ public class ScreenCatcherWindow extends JFrame {
 		dvDialog.getContentPane().add(dvImage);
 		AWTUtilities.setWindowOpaque(dvDialog, false);
 		recImage = ImageIO.read(getClass().getResourceAsStream("/pic/pic_rec.png"));
-
-		// 放大镜
-//		glassDialog = new JDialog();
-//		glassImage = new JLabel();
 	}
 
 	public ScreenCatcherWindow() throws Exception {
@@ -435,6 +446,23 @@ public class ScreenCatcherWindow extends JFrame {
 		starting = false;
 		btn_start.setText("开 始");
 		dvDialog.setVisible(false);
+	}
+
+	/**
+	 * 绘制放大镜
+	 */
+	private void repaintGlass(int m_x, int m_y) {
+		int off = (GLASS_LEN - 1) / 2;
+		for (int i = 0; i < GLASS_LEN; i++) {
+			for (int j = 0; j < GLASS_LEN; j++) {
+				if (i == off + 1 || j == off + 1) {
+					gImage.setRGB(i, j, 0xff0000ff);
+				} else {
+					gImage.setRGB(i, j, bImage.getRGB((i - off) / 3 + m_x, (j - off) / 3 + m_y));
+				}
+			}
+		}
+		glassImage.setIcon(new ImageIcon(gImage));
 	}
 
 	/**
