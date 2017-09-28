@@ -3,11 +3,11 @@ package com.liyiyue;
 import java.awt.Font;
 
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 import javax.swing.UIManager;
 
 import com.liyiyue.util.FontUtil;
-import javax.swing.JLabel;
 
 /**
  * @author liyiyue

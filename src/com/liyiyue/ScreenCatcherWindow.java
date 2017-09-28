@@ -36,7 +36,6 @@ import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTextArea;
@@ -48,6 +47,8 @@ import javax.swing.event.ChangeListener;
 
 import com.liyiyue.gif.JpgToGifUtil;
 import com.liyiyue.util.FontUtil;
+import com.melloware.jintellitype.HotkeyListener;
+import com.melloware.jintellitype.JIntellitype;
 import com.sun.awt.AWTUtilities;
 
 /**
@@ -72,10 +73,10 @@ public class ScreenCatcherWindow extends JFrame {
 	// 全局参数
 	private int area_x;          // 选框左上角x
 	private int area_y;          // 选框左上角y
-	private int mouse_x_r;       // 鼠标按下的相对x
-	private int mouse_y_r;       // 鼠标按下的相对y
+	private int mouse_x_r;       // 鼠标拖动选框时的相对x
+	private int mouse_y_r;       // 鼠标拖动选框时的相对y
 	private byte cursor;         // 鼠标指针样式，0默认、1十字、2拖动
-	private boolean mouse_move;  // 鼠标拖动中
+	private boolean mouse_move;  // 鼠标拖动选框中
 	private float mouse_x_f;     // 鼠标当前所在x_float
 	private float mouse_y_f;     // 鼠标当前所在y_float
 	private int mouse_x_i;       // 鼠标当前所在x_int
@@ -150,6 +151,7 @@ public class ScreenCatcherWindow extends JFrame {
 		mouse_x_i = -1;
 		mouse_y_i = -1;
 		mouse_shift = false;
+		starting = false;
 		sizeMap = new HashMap<Integer, Long>();
 		sizeMap.put(2, 143353l);
 		sizeMap.put(3, 209516l);
@@ -225,7 +227,7 @@ public class ScreenCatcherWindow extends JFrame {
 					if (tmp_y > screen_h - bgImg.h) tmp_y = screen_h - bgImg.h;
 					area_x = tmp_x;
 					area_y = tmp_y;
-					bgImg.drawRectangle(area_x, area_y, area_x + bgImg.w, area_y + bgImg.h);
+					bgImg.drawRectangle(area_x, area_y, area_x + bgImg.w - 1, area_y + bgImg.h - 1);
 				} else {
 					bgImg.drawRectangle(area_x, area_y, mouse_x_i, mouse_y_i);
 				}
@@ -297,7 +299,7 @@ public class ScreenCatcherWindow extends JFrame {
 		dvDialog.getContentPane().add(dvRecImage);
 		dvDialog.getContentPane().add(dvImage);
 		AWTUtilities.setWindowOpaque(dvDialog, false);
-		recImage = ImageIO.read(getClass().getResourceAsStream("/pic/pic_rec.png"));
+		recImage = ImageIO.read(getClass().getResourceAsStream("/res/pic_rec.png"));
 	}
 
 	public ScreenCatcherWindow() throws Exception {
@@ -456,9 +458,26 @@ public class ScreenCatcherWindow extends JFrame {
 
 		ta_help = new JTextArea();
 		ta_help.setEditable(false);
-		ta_help.setText("说明：\r\n1.选择gif文件的“保存路径“\r\n2.设置gif“捕捉区域“，双击、Esc、回车可返回\r\n3.选择“帧率“，截取频率建议不要太大\r\n4.点击“开始“，开始录像（最长10秒，10秒后自动结束）\r\n5.点击“结束“，保存gif");
+		ta_help.setText("说明：\r\n1.选择gif文件的“保存路径“\r\n2.设置gif“捕捉区域“，双击/Esc/回车均可返回\r\n3.选择“帧率“，截取频率建议不要太大\r\n4.选择“图像质量”，质量越高体积越大\r\n5.点击“开始“，或使用全局快捷键“ALT+L”，开始录像\r\n6.点击“结束“，或使用全局快捷键“ALT+L”，保存gif\r\n7.使用全局快捷键“ALT+L”开始录像，再次使用结束\r\n\r\n建议：\r\n1.对于截取的画面颜色较少的情况，建议适当调高画面质量");
 		ta_help.setCaretPosition(0);
 		sp_1.setViewportView(ta_help);
+
+		JIntellitype.getInstance().registerHotKey(1, JIntellitype.MOD_ALT, 'L');
+		JIntellitype.getInstance().addHotKeyListener(new HotkeyListener() {
+			@Override
+			public void onHotKey(int arg0) {
+				if (!starting) {
+					executor.execute(new Runnable() {
+						@Override
+						public void run() {
+							start();
+						}
+					});
+				} else {
+					end();
+				}
+			}
+		});
 	}
 
 	/**
@@ -467,12 +486,7 @@ public class ScreenCatcherWindow extends JFrame {
 	 * @throws Exception
 	 */
 	private void start() {
-		if (isEmptyStr(tf_setPath.getText())) {
-			JOptionPane.showMessageDialog(null, "未选择路径");
-			return;
-		}
-		if (isEmptyStr(tf_areaW.getText()) || isEmptyStr(tf_areaH.getText())) {
-			JOptionPane.showMessageDialog(null, "未设置区域");
+		if (isEmptyStr(tf_setPath.getText()) || isEmptyStr(tf_areaW.getText()) || isEmptyStr(tf_areaH.getText())) {
 			return;
 		}
 		buffers.clear();
@@ -514,6 +528,12 @@ public class ScreenCatcherWindow extends JFrame {
 				} else {
 					if (dvRecImage.isVisible()) {
 						dvRecImage.setVisible(false);
+						// 休眠1秒，以确保UI线程在截屏前，完成了重绘
+						try {
+							Thread.sleep(1);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
 				}
 				// 截屏
