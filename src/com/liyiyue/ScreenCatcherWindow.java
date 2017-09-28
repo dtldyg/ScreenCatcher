@@ -1,5 +1,6 @@
 package com.liyiyue;
 
+import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -55,14 +56,20 @@ public class ScreenCatcherWindow extends JFrame {
 	private static final int DV_MAX_LEN = 20;        // DV框线最大长度
 	private static final int DV_DIV = 4;             // DV框边长与框线的比值
 	private static final int GLASS_LEN = 161;        // 放大镜边长
+	private static final int MOUSE_SLOW = 4;         // 鼠标慢速移动
 
 	// 全局参数
-	private int area_x;         // 选框左上角x
-	private int area_y;         // 选框左上角y
-	private int mouse_x_r;      // 鼠标按下的相对x
-	private int mouse_y_r;      // 鼠标按下的相对y
-	private byte cursor;        // 鼠标指针样式，0默认、1十字、2拖动
-	private boolean mouse_move; // 鼠标拖动中
+	private int area_x;          // 选框左上角x
+	private int area_y;          // 选框左上角y
+	private int mouse_x_r;       // 鼠标按下的相对x
+	private int mouse_y_r;       // 鼠标按下的相对y
+	private byte cursor;         // 鼠标指针样式，0默认、1十字、2拖动
+	private boolean mouse_move;  // 鼠标拖动中
+	private float mouse_x_f;     // 鼠标当前所在x_float
+	private float mouse_y_f;     // 鼠标当前所在y_float
+	private int mouse_x_i;       // 鼠标当前所在x_int
+	private int mouse_y_i;       // 鼠标当前所在y_int
+	private boolean mouse_shift; // 鼠标shift慢速移动中
 	private int screen_w = Toolkit.getDefaultToolkit().getScreenSize().width;
 	private int screen_h = Toolkit.getDefaultToolkit().getScreenSize().height;
 
@@ -82,6 +89,8 @@ public class ScreenCatcherWindow extends JFrame {
 	private BufferedImage recImage;      // DV rec资源
 	private JLabel glassImage;           // 放大镜
 	private BufferedImage gImage;        // 放大镜背景图像
+	private JLabel glassInfo;            // 放大镜说明文字
+	private JLabel glassInfoBg;          // 放大镜说明背景
 
 	// 组件
 	public static ProgressWindow progressWindow;
@@ -119,11 +128,29 @@ public class ScreenCatcherWindow extends JFrame {
 		robot = new Robot();
 		rectangle = new Rectangle();
 		buffers = new ArrayList<BufferedImage>();
+		mouse_x_f = -1.0f;
+		mouse_y_f = -1.0f;
+		mouse_x_i = -1;
+		mouse_y_i = -1;
+		mouse_shift = false;
 
 		// 放大镜
-		glassImage = new JLabel("aaaa");
+		glassImage = new JLabel();
 		glassImage.setBounds(0, 0, GLASS_LEN, GLASS_LEN);
 		gImage = new BufferedImage(GLASS_LEN, GLASS_LEN, BufferedImage.TYPE_INT_ARGB);
+		glassInfo = new JLabel(" 按住shift屏住呼吸");
+		glassInfo.setFont(new Font("微软雅黑", Font.BOLD, 12));
+		glassInfo.setBounds(0, 0, 110, 20);
+		glassInfo.setForeground(Color.WHITE);
+		glassInfoBg = new JLabel();
+		glassInfoBg.setBounds(0, 0, 110, 20);
+		BufferedImage gInfo = new BufferedImage(110, 20, BufferedImage.TYPE_INT_ARGB);
+		for (int i = 0; i < 110; i++) {
+			for (int j = 0; j < 20; j++) {
+				gInfo.setRGB(i, j, 0x88000000);
+			}
+		}
+		glassInfoBg.setIcon(new ImageIcon(gInfo));
 
 		// 初始化画布，监听鼠标按下、松开，以及移动
 		bgImg = new BackgroundImage();
@@ -163,9 +190,27 @@ public class ScreenCatcherWindow extends JFrame {
 			// 鼠标按下移动
 			@Override
 			public void mouseDragged(MouseEvent e) {
+				if (mouse_x_f < 0 && mouse_y_f < 0 && mouse_x_i < 0 && mouse_y_i < 0) {
+					mouse_x_f = e.getX();
+					mouse_y_f = e.getY();
+					mouse_x_i = e.getX();
+					mouse_y_i = e.getY();
+				}
+				if (mouse_shift) {
+					mouse_x_f = (e.getX() - mouse_x_i) * 1.0f / MOUSE_SLOW + mouse_x_f;
+					mouse_y_f = (e.getY() - mouse_y_i) * 1.0f / MOUSE_SLOW + mouse_y_f;
+					mouse_x_i = (int) mouse_x_f;
+					mouse_y_i = (int) mouse_y_f;
+					robot.mouseMove(mouse_x_i, mouse_y_i);
+				} else {
+					mouse_x_f = e.getX();
+					mouse_y_f = e.getY();
+					mouse_x_i = e.getX();
+					mouse_y_i = e.getY();
+				}
 				if (mouse_move) {
-					int tmp_x = e.getX() - mouse_x_r;
-					int tmp_y = e.getY() - mouse_y_r;
+					int tmp_x = mouse_x_i - mouse_x_r;
+					int tmp_y = mouse_y_i - mouse_y_r;
 					if (tmp_x < 0) tmp_x = 0;
 					if (tmp_y < 0) tmp_y = 0;
 					if (tmp_x > screen_w - bgImg.w) tmp_x = screen_w - bgImg.w;
@@ -174,16 +219,39 @@ public class ScreenCatcherWindow extends JFrame {
 					area_y = tmp_y;
 					bgImg.drawRectangle(area_x, area_y, area_x + bgImg.w, area_y + bgImg.h);
 				} else {
-					bgImg.drawRectangle(area_x, area_y, e.getX(), e.getY());
+					bgImg.drawRectangle(area_x, area_y, mouse_x_i, mouse_y_i);
 				}
-				glassImage.setLocation(e.getX() + 15, e.getY() + 20);
-				repaintGlass(e.getX(), e.getY());
+				glassImage.setLocation(mouse_x_i + 15, mouse_y_i + 20);
+				glassInfo.setLocation(mouse_x_i + 15, mouse_y_i + 20 + GLASS_LEN);
+				glassInfoBg.setLocation(mouse_x_i + 15, mouse_y_i + 20 + GLASS_LEN);
+				repaintGlass(mouse_x_i, mouse_y_i);
 			}
 
 			// 鼠标松开移动
 			@Override
 			public void mouseMoved(MouseEvent e) {
-				if (bgImg.inArea(e.getX(), e.getY())) {
+				if (mouse_x_f < 0 && mouse_y_f < 0 && mouse_x_i < 0 && mouse_y_i < 0) {
+					mouse_x_f = e.getX();
+					mouse_y_f = e.getY();
+					mouse_x_i = e.getX();
+					mouse_y_i = e.getY();
+				}
+				if (mouse_shift) {
+					System.out.print(e.getX() + "," + e.getY() + "\t");
+					System.out.print(mouse_x_f + "," + mouse_y_f + "\t");
+					System.out.println(mouse_x_i + "," + mouse_y_i);
+					mouse_x_f = (e.getX() - mouse_x_i) * 1.0f / MOUSE_SLOW + mouse_x_f;
+					mouse_y_f = (e.getY() - mouse_y_i) * 1.0f / MOUSE_SLOW + mouse_y_f;
+					mouse_x_i = (int) mouse_x_f;
+					mouse_y_i = (int) mouse_y_f;
+					robot.mouseMove(mouse_x_i, mouse_y_i);
+				} else {
+					mouse_x_f = e.getX();
+					mouse_y_f = e.getY();
+					mouse_x_i = e.getX();
+					mouse_y_i = e.getY();
+				}
+				if (bgImg.inArea(mouse_x_i, mouse_y_i)) {
 					if (cursor != 2) {
 						cursor = 2;
 						bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
@@ -191,20 +259,17 @@ public class ScreenCatcherWindow extends JFrame {
 				} else {
 					if (cursor != 1) {
 						cursor = 1;
-						// FIXME
-						// bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
 						bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 					}
 				}
-				glassImage.setLocation(e.getX() + 15, e.getY() + 20);
-				repaintGlass(e.getX(), e.getY());
+				glassImage.setLocation(mouse_x_i + 15, mouse_y_i + 20);
+				glassInfo.setLocation(mouse_x_i + 15, mouse_y_i + 20 + GLASS_LEN);
+				glassInfoBg.setLocation(mouse_x_i + 15, mouse_y_i + 20 + GLASS_LEN);
+				repaintGlass(mouse_x_i, mouse_y_i);
 			}
 		});
 		// 区域选择
 		bgDialog = new JDialog();
-		// FIXME
-		// bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
-		bgDialog.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		cursor = 1;
 		bgDialog.setSize(Toolkit.getDefaultToolkit().getScreenSize());
 		bgDialog.setUndecorated(true);
@@ -212,6 +277,8 @@ public class ScreenCatcherWindow extends JFrame {
 		bgDialog.setModal(true);
 		bgDialog.setResizable(false);
 		bgDialog.getContentPane().setLayout(null);
+		bgDialog.getContentPane().add(glassInfo);
+		bgDialog.getContentPane().add(glassInfoBg);
 		bgDialog.getContentPane().add(glassImage);
 		bgDialog.getContentPane().add(bgImg);
 		bgDialog.addKeyListener(new KeyAdapter() {
@@ -220,6 +287,17 @@ public class ScreenCatcherWindow extends JFrame {
 				super.keyReleased(e);
 				if (e.getKeyCode() == KeyEvent.VK_ESCAPE || e.getKeyCode() == KeyEvent.VK_ENTER) {
 					bgDialog.setVisible(false);
+				}
+				if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+					mouse_shift = false;
+				}
+			}
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+				super.keyPressed(e);
+				if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+					mouse_shift = true;
 				}
 			}
 		});
@@ -455,8 +533,8 @@ public class ScreenCatcherWindow extends JFrame {
 		int off = (GLASS_LEN - 1) / 2;
 		for (int i = 0; i < GLASS_LEN; i++) {
 			for (int j = 0; j < GLASS_LEN; j++) {
-				if (i == off + 1 || j == off + 1) {
-					gImage.setRGB(i, j, 0xff0000ff);
+				if (i == off || i == off + 1 || i == off + 2 || j == off || j == off + 1 || j == off + 2) {
+					gImage.setRGB(i, j, 0xff33bbbb);
 				} else {
 					gImage.setRGB(i, j, bImage.getRGB((i - off) / 3 + m_x, (j - off) / 3 + m_y));
 				}
