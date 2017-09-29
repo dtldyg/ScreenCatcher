@@ -10,8 +10,11 @@ import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
@@ -61,7 +64,7 @@ public class ScreenCatcherWindow extends JFrame {
 	private static final long serialVersionUID = 1L;
 
 	// 常量
-	private static final int MAX_MILLIS = 10 * 1000; // 可录制最大毫秒数
+	private static final int MAX_MILLIS = 15 * 1000; // 可录制最大毫秒数
 	private static final int RECORD_SLEEP = 2;       // 录制每帧休眠
 	private static final int DV_MAX_LEN = 20;        // DV框线最大长度
 	private static final int DV_DIV = 4;             // DV框边长与框线的比值
@@ -313,7 +316,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().setLayout(null);
 		setTitle("GIF屏幕录像宗师");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(600, 300, 422, 309);
+		setBounds(600, 300, 422, 333);
 		setAlwaysOnTop(true);
 		setResizable(false);
 
@@ -429,6 +432,44 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().add(sd_qualityBits);
 		sd_qualityBits.setValue(2);
 
+		lb_9 = new JLabel("开始延迟：");
+		lb_9.setBounds(12, 140, 72, 23);
+		getContentPane().add(lb_9);
+
+		tf_startDelay = new JTextField();
+		tf_startDelay.setText("0");
+		tf_startDelay.setBounds(82, 140, 115, 23);
+		tf_startDelay.addKeyListener(new NumKeyListener());
+		tf_startDelay.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent arg0) {
+				super.focusLost(arg0);
+				if (isEmptyStr(tf_startDelay.getText())) {
+					tf_startDelay.setText("0");
+				}
+			}
+		});
+		getContentPane().add(tf_startDelay);
+
+		lb_10 = new JLabel("录制时长：");
+		lb_10.setBounds(215, 140, 72, 23);
+		getContentPane().add(lb_10);
+
+		tf_recordSecond = new JTextField();
+		tf_recordSecond.setText("0");
+		tf_recordSecond.setBounds(285, 140, 115, 23);
+		tf_recordSecond.addKeyListener(new NumKeyListener(MAX_MILLIS / 1000, tf_recordSecond));
+		tf_recordSecond.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent arg0) {
+				super.focusLost(arg0);
+				if (isEmptyStr(tf_recordSecond.getText())) {
+					tf_recordSecond.setText("0");
+				}
+			}
+		});
+		getContentPane().add(tf_recordSecond);
+
 		btn_start = new JButton("开 始");
 		btn_start.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -440,7 +481,7 @@ public class ScreenCatcherWindow extends JFrame {
 				});
 			}
 		});
-		btn_start.setBounds(12, 142, 185, 23);
+		btn_start.setBounds(12, 172, 185, 23);
 		getContentPane().add(btn_start);
 
 		btn_end = new JButton("结 束");
@@ -449,11 +490,11 @@ public class ScreenCatcherWindow extends JFrame {
 				end();
 			}
 		});
-		btn_end.setBounds(215, 142, 185, 23);
+		btn_end.setBounds(215, 172, 185, 23);
 		getContentPane().add(btn_end);
 
 		sp_1 = new JScrollPane();
-		sp_1.setBounds(12, 175, 388, 89);
+		sp_1.setBounds(12, 205, 388, 89);
 		getContentPane().add(sp_1);
 
 		ta_help = new JTextArea();
@@ -489,6 +530,7 @@ public class ScreenCatcherWindow extends JFrame {
 		if (isEmptyStr(tf_setPath.getText()) || isEmptyStr(tf_areaW.getText()) || isEmptyStr(tf_areaH.getText())) {
 			return;
 		}
+		recordDelay();
 		buffers.clear();
 		starting = true;
 		btn_start.setText("录制中...");
@@ -509,11 +551,13 @@ public class ScreenCatcherWindow extends JFrame {
 		int num = 0;
 		int frames = ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames();
 		long begin = System.currentTimeMillis();
+		int recordSecond = isEmptyStr(tf_recordSecond.getText()) ? 0 : Integer.parseInt(tf_recordSecond.getText());
+		int maxMillis = recordSecond <= 0 ? MAX_MILLIS : recordSecond * 1000;
 		int delay = 1000 / frames;
 		long lastTime = 0;
 		while (starting) {
 			long currentTime = System.currentTimeMillis();
-			if ((currentTime - begin) >= MAX_MILLIS) {
+			if ((currentTime - begin) >= maxMillis) {
 				end();
 				continue;
 			}
@@ -550,6 +594,22 @@ public class ScreenCatcherWindow extends JFrame {
 		}
 		outPutGif();
 		buffers.clear();
+	}
+
+	/**
+	 * 开始延迟
+	 */
+	private void recordDelay() {
+		if (isEmptyStr(tf_startDelay.getText()) || Integer.parseInt(tf_startDelay.getText()) <= 0) return;
+		int delaySecond = Integer.parseInt(tf_startDelay.getText());
+		for (int i = delaySecond; i > 0; i--) {
+			btn_start.setText("倒计时：" + i + "秒");
+			try {
+				Thread.sleep(1000);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	/**
@@ -760,6 +820,10 @@ public class ScreenCatcherWindow extends JFrame {
 	}
 
 	public static DecimalFormat df = new DecimalFormat("#0.0");
+	private JLabel lb_9;
+	private JLabel lb_10;
+	private JTextField tf_startDelay;
+	private JTextField tf_recordSecond;
 
 	public static String getFormatSize(long bytes) {
 		if (bytes < 1024) return bytes + "B";
@@ -892,6 +956,46 @@ public class ScreenCatcherWindow extends JFrame {
 		@Override
 		public String toString() {
 			return frames + " 帧/秒";
+		}
+	}
+
+	/**
+	 * 监听器，只能输入数字
+	 */
+	public class NumKeyListener implements KeyListener {
+		/** 最大值 */
+		private int max;
+		/** 被监听组件 */
+		private JTextField field;
+
+		public NumKeyListener() {
+			this.max = -1;
+		}
+
+		public NumKeyListener(int max, JTextField field) {
+			this.max = max;
+			this.field = field;
+		}
+
+		@Override
+		public void keyPressed(KeyEvent e) {
+		}
+
+		@Override
+		public void keyReleased(KeyEvent e) {
+		}
+
+		@Override
+		public void keyTyped(KeyEvent e) {
+			int keyChar = e.getKeyChar();
+			if (keyChar < KeyEvent.VK_0 || keyChar > KeyEvent.VK_9) {
+				e.consume();
+			} else {
+				if (max >= 0 && Integer.parseInt(field.getText() + e.getKeyChar()) > max) {
+					e.consume();
+					field.setText(max + "");
+				}
+			}
 		}
 	}
 }
