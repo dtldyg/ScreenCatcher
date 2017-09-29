@@ -456,7 +456,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().add(lb_10);
 
 		tf_recordSecond = new JTextField();
-		tf_recordSecond.setText("0");
+		tf_recordSecond.setText("15");
 		tf_recordSecond.setBounds(285, 140, 115, 23);
 		tf_recordSecond.addKeyListener(new NumKeyListener(MAX_MILLIS / 1000, tf_recordSecond));
 		tf_recordSecond.addFocusListener(new FocusAdapter() {
@@ -498,8 +498,9 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().add(sp_1);
 
 		ta_help = new JTextArea();
+		ta_help.setLineWrap(true);
 		ta_help.setEditable(false);
-		ta_help.setText("说明：\r\n1.选择gif文件的“保存路径“\r\n2.设置gif“捕捉区域“，双击/Esc/回车均可返回\r\n3.选择“帧率“，截取频率建议不要太大\r\n4.选择“图像质量”，质量越高体积越大\r\n5.点击“开始“，或使用全局快捷键“ALT+L”，开始录像\r\n6.点击“结束“，或使用全局快捷键“ALT+L”，保存gif\r\n7.使用全局快捷键“ALT+L”开始录像，再次使用结束\r\n\r\n建议：\r\n1.对于截取的画面颜色较少的情况，建议适当调高画面质量");
+		ta_help.setText("说明：\r\n1.选择gif文件的“保存路径“\r\n2.设置gif“捕捉区域“，双击/Esc/回车均可返回\r\n3.选择“帧率“，截取频率建议不要太大\r\n4.选择“图像质量”，质量越高体积越大\r\n5.设定“开始延迟”和“录制时长”，0表示不设定。录制时长默认最大15秒\r\n6.点击“开始“，或使用全局快捷键“ALT+L”，开始录像\r\n7.点击“结束“，或使用全局快捷键“ALT+L”，保存gif\r\n8.使用全局快捷键“ALT+L”开始录像，再次使用结束\r\n\r\n建议：\r\n1.对于截取的画面颜色较少的情况，可适当调高画面质量");
 		ta_help.setCaretPosition(0);
 		sp_1.setViewportView(ta_help);
 
@@ -533,7 +534,7 @@ public class ScreenCatcherWindow extends JFrame {
 		recordDelay();
 		buffers.clear();
 		starting = true;
-		btn_start.setText("录制中...");
+		btn_start.setText("录制中...0秒");
 
 		// 设置DV框
 		dvDialog.setBounds(rectangle.x - 1, rectangle.y - 1, rectangle.width + 2, rectangle.height + 2);
@@ -554,9 +555,19 @@ public class ScreenCatcherWindow extends JFrame {
 		int recordSecond = isEmptyStr(tf_recordSecond.getText()) ? 0 : Integer.parseInt(tf_recordSecond.getText());
 		int maxMillis = recordSecond <= 0 ? MAX_MILLIS : recordSecond * 1000;
 		int delay = 1000 / frames;
+		int totalSecond = 0;
+		long lastSecondMillis = 0;
 		long lastTime = 0;
 		while (starting) {
 			long currentTime = System.currentTimeMillis();
+			if (lastSecondMillis == 0) {
+				lastSecondMillis = currentTime;
+			}
+			if (currentTime - lastSecondMillis >= 1000) {
+				lastSecondMillis = currentTime;
+				totalSecond++;
+				btn_start.setText("录制中..." + totalSecond + "秒");
+			}
 			if ((currentTime - begin) >= maxMillis) {
 				end();
 				continue;
@@ -566,7 +577,7 @@ public class ScreenCatcherWindow extends JFrame {
 				// REC闪烁，每秒的截屏间隔中，只有最后一个间隔显示
 				num++;
 				boolean setVisable = false;
-				if (num >= (frames - 1)) {
+				if (num >= frames) {
 					num = 0;
 					setVisable = true;
 				} else {
