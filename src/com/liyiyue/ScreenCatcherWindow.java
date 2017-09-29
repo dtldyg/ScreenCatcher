@@ -370,15 +370,24 @@ public class ScreenCatcherWindow extends JFrame {
 		lb_4.setBounds(12, 76, 65, 23);
 		getContentPane().add(lb_4);
 
-		FPSItem[] fpsArr = new FPSItem[3];
+		FPSItem[] fpsArr = new FPSItem[6];
 		fpsArr[0] = new FPSItem(5);
 		fpsArr[1] = new FPSItem(10);
 		fpsArr[2] = new FPSItem(15);
+		fpsArr[3] = new FPSItem(20);
+		fpsArr[4] = new FPSItem(25);
+		fpsArr[5] = new FPSItem(30);
 
 		cb_cutFrames = new JComboBox<FPSItem>();
 		cb_cutFrames.setBounds(82, 75, 115, 23);
 		cb_cutFrames.setModel(new DefaultComboBoxModel<FPSItem>(fpsArr));
 		cb_cutFrames.setSelectedIndex(1);
+		cb_cutFrames.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				refreshQualitySize();
+			}
+		});
 		getContentPane().add(cb_cutFrames);
 
 		cb_playFrames = new JComboBox<FPSItem>();
@@ -797,6 +806,7 @@ public class ScreenCatcherWindow extends JFrame {
 				}
 			}
 		} else {
+			if ((b.getWidth() - (len / 2)) <= recImage.getWidth() * 2 || (b.getHeight() - (len / 2)) <= recImage.getHeight() * 2) return;
 			for (int i = recImage.getMinX(); i < recImage.getMinX() + recImage.getWidth(); i++) {
 				for (int j = recImage.getMinY(); j < recImage.getMinY() + recImage.getHeight(); j++) {
 					b.setRGB(i + len / 2, j + len / 2, recImage.getRGB(i, j));
