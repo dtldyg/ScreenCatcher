@@ -50,6 +50,7 @@ import javax.swing.event.ChangeListener;
 
 import com.liyiyue.gif.JpgToGifUtil;
 import com.liyiyue.util.FontUtil;
+import com.liyiyue.util.JNIUtil;
 import com.melloware.jintellitype.HotkeyListener;
 import com.melloware.jintellitype.JIntellitype;
 import com.sun.awt.AWTUtilities;
@@ -146,6 +147,7 @@ public class ScreenCatcherWindow extends JFrame {
 	}
 
 	private void init() throws Exception {
+		JNIUtil.init();
 		robot = new Robot();
 		rectangle = new Rectangle();
 		buffers = new ArrayList<BufferedImage>();
@@ -639,6 +641,8 @@ public class ScreenCatcherWindow extends JFrame {
 		String savePath = tf_setPath.getText() + File.separator + "sc_" + System.currentTimeMillis() / 1000 + ".gif";
 		int playDelay = 1000 / ((FPSItem) cb_playFrames.getSelectedItem()).getFrames();
 		JpgToGifUtil.bufferToGif(buffers.toArray(new BufferedImage[0]), savePath, playDelay, (byte) bitTValue(sd_qualityBits.getValue()));
+		// gif拷贝进系统剪贴板
+		JNIUtil.setGifToClipBoard(savePath);
 	}
 
 	/**
