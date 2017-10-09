@@ -49,6 +49,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import com.liyiyue.gif.JpgToGifUtil;
+import com.liyiyue.util.CacheUtil;
 import com.liyiyue.util.FontUtil;
 import com.liyiyue.util.JNIUtil;
 import com.melloware.jintellitype.HotkeyListener;
@@ -305,6 +306,8 @@ public class ScreenCatcherWindow extends JFrame {
 		dvDialog.getContentPane().add(dvImage);
 		AWTUtilities.setWindowOpaque(dvDialog, false);
 		recImage = ImageIO.read(getClass().getResourceAsStream("/res/pic_rec.png"));
+		
+		CacheUtil.init();
 	}
 
 	public ScreenCatcherWindow() throws Exception {
@@ -327,7 +330,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().add(lb_1);
 
 		tf_setPath = new JTextField();
-		tf_setPath.setText("E:\\");
+		tf_setPath.setText(CacheUtil.path);
 		tf_setPath.setEditable(false);
 		tf_setPath.setBounds(82, 9, 241, 23);
 		getContentPane().add(tf_setPath);
@@ -780,6 +783,7 @@ public class ScreenCatcherWindow extends JFrame {
 		if (op == JFileChooser.APPROVE_OPTION) {
 			File selectedFiles = fc.getSelectedFile();
 			tf_setPath.setText(selectedFiles.getPath());
+			CacheUtil.savePath(selectedFiles.getPath());
 		}
 	}
 
