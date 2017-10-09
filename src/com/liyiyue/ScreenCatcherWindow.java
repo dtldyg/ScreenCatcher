@@ -299,7 +299,7 @@ public class ScreenCatcherWindow extends JFrame {
 		dvDialog.setUndecorated(true);
 		dvDialog.setAlwaysOnTop(true);
 		dvDialog.setResizable(false);
-		dvDialog.setFocusable(false);
+		dvDialog.setFocusableWindowState(false);
 		dvDialog.getContentPane().setLayout(null);
 		dvDialog.getContentPane().add(dvRecImage);
 		dvDialog.getContentPane().add(dvImage);
