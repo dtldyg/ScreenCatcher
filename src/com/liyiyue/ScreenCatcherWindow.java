@@ -2,6 +2,7 @@ package com.liyiyue;
 
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -22,6 +23,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -115,6 +117,7 @@ public class ScreenCatcherWindow extends JFrame {
 	private JLabel lb_1;
 	private JTextField tf_setPath;
 	private JButton btn_setPath;
+	private JButton btn_openPath;
 	private JButton btn_setAera;
 	private JTextField tf_areaW;
 	private JTextField tf_areaH;
@@ -306,7 +309,7 @@ public class ScreenCatcherWindow extends JFrame {
 		dvDialog.getContentPane().add(dvImage);
 		AWTUtilities.setWindowOpaque(dvDialog, false);
 		recImage = ImageIO.read(getClass().getResourceAsStream("/res/pic_rec.png"));
-		
+
 		CacheUtil.init();
 	}
 
@@ -332,7 +335,7 @@ public class ScreenCatcherWindow extends JFrame {
 		tf_setPath = new JTextField();
 		tf_setPath.setText(CacheUtil.path);
 		tf_setPath.setEditable(false);
-		tf_setPath.setBounds(82, 9, 241, 23);
+		tf_setPath.setBounds(82, 9, 185, 23);
 		getContentPane().add(tf_setPath);
 
 		btn_setPath = new JButton("选择");
@@ -341,8 +344,27 @@ public class ScreenCatcherWindow extends JFrame {
 				setPath();
 			}
 		});
-		btn_setPath.setBounds(335, 9, 65, 23);
+		btn_setPath.setBounds(276, 9, 60, 23);
 		getContentPane().add(btn_setPath);
+
+		btn_openPath = new JButton("打开");
+		btn_openPath.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				String path = tf_setPath.getText();
+				if (!isEmptyStr(path)) {
+					File file = new File(path);
+					if (file.exists()) {
+						try {
+							Desktop.getDesktop().open(file);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		btn_openPath.setBounds(340, 9, 60, 23);
+		getContentPane().add(btn_openPath);
 
 		btn_setAera = new JButton("设置捕捉区域");
 		btn_setAera.addActionListener(new ActionListener() {

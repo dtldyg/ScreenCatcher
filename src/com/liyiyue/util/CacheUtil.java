@@ -60,7 +60,7 @@ public class CacheUtil {
 				file.createNewFile();
 			}
 			fos = new FileOutputStream(file);
-			byte[] strBytes = str.getBytes();
+			byte[] strBytes = str.getBytes("utf-8");
 			fos.write(strBytes);
 			fos.flush();
 			fos.close();
