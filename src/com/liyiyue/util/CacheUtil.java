@@ -2,9 +2,10 @@ package com.liyiyue.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 /**
  * @author liyiyue
@@ -23,6 +24,7 @@ public class CacheUtil {
 	 */
 	public static void init() {
 		String path = readString();
+		System.out.println(path);
 		if (path == null || "".equals(path)) {
 			CacheUtil.path = "";
 		} else {
@@ -90,7 +92,7 @@ public class CacheUtil {
 		}
 		BufferedReader reader = null;
 		try {
-			reader = new BufferedReader(new FileReader(file));
+			reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "utf-8"));
 			str = reader.readLine();
 			reader.close();
 			return str;
