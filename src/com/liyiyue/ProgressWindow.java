@@ -18,20 +18,6 @@ public class ProgressWindow extends JFrame {
 	private static final long serialVersionUID = 1L;
 	public JProgressBar progressBar;
 
-	// public static void main(String[] args) {
-	// EventQueue.invokeLater(new Runnable() {
-	// public void run() {
-	// try {
-	// // 初始化进度条
-	// ProgressWindow progressWindow = new ProgressWindow();
-	// progressWindow.setVisible(true);
-	// } catch (Exception e) {
-	// e.printStackTrace();
-	// }
-	// }
-	// });
-	// }
-
 	public ProgressWindow() throws Exception {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -45,13 +31,14 @@ public class ProgressWindow extends JFrame {
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		setAlwaysOnTop(true);
+		setFocusableWindowState(false);
 
 		progressBar = new JProgressBar();
 		progressBar.setMaximum(100);
 		progressBar.setStringPainted(true);
 		progressBar.setBounds(10, 36, 274, 16);
 		getContentPane().add(progressBar);
-		
+
 		JLabel lblNewLabel = new JLabel("保存中...");
 		lblNewLabel.setBounds(10, 11, 122, 15);
 		getContentPane().add(lblNewLabel);
