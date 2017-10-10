@@ -17,6 +17,7 @@ import com.liyiyue.util.FontUtil;
 public class ProgressWindow extends JFrame {
 	private static final long serialVersionUID = 1L;
 	public JProgressBar progressBar;
+	public JLabel title;
 
 	public ProgressWindow() throws Exception {
 		try {
@@ -39,9 +40,9 @@ public class ProgressWindow extends JFrame {
 		progressBar.setBounds(10, 36, 274, 16);
 		getContentPane().add(progressBar);
 
-		JLabel lblNewLabel = new JLabel("保存中...");
-		lblNewLabel.setBounds(10, 11, 122, 15);
-		getContentPane().add(lblNewLabel);
+		title = new JLabel("保存中...");
+		title.setBounds(10, 11, 122, 15);
+		getContentPane().add(title);
 
 	}
 }

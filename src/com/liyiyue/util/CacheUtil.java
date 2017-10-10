@@ -24,7 +24,6 @@ public class CacheUtil {
 	 */
 	public static void init() {
 		String path = readString();
-		System.out.println(path);
 		if (path == null || "".equals(path)) {
 			CacheUtil.path = "";
 		} else {

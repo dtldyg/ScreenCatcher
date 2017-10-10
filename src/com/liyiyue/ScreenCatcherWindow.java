@@ -6,6 +6,7 @@ import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.Toolkit;
@@ -134,6 +135,10 @@ public class ScreenCatcherWindow extends JFrame {
 	private JLabel lb_7;
 	private JLabel lb_8;
 	private JLabel lb_size;
+	private JLabel lb_11;
+	private JComboBox<ScaleItem> cb_scale;
+	private JLabel lb_12;
+	private JComboBox<ModelItem> cb_model;
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -324,7 +329,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().setLayout(null);
 		setTitle("GIF屏幕录像宗师");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(600, 300, 422, 333);
+		setBounds(600, 300, 422, 370);
 		setAlwaysOnTop(true);
 		setResizable(false);
 
@@ -417,38 +422,74 @@ public class ScreenCatcherWindow extends JFrame {
 		});
 		getContentPane().add(cb_cutFrames);
 
+		lb_5 = new JLabel("播放帧率：");
+		lb_5.setBounds(215, 76, 65, 23);
+		getContentPane().add(lb_5);
+
 		cb_playFrames = new JComboBox<FPSItem>();
 		cb_playFrames.setBounds(285, 75, 115, 23);
 		cb_playFrames.setModel(new DefaultComboBoxModel<FPSItem>(fpsArr));
 		cb_playFrames.setSelectedIndex(1);
 		getContentPane().add(cb_playFrames);
 
-		lb_5 = new JLabel("播放帧率：");
-		lb_5.setBounds(215, 76, 65, 23);
-		getContentPane().add(lb_5);
+		lb_11 = new JLabel("缩放比例：");
+		lb_11.setBounds(12, 111, 65, 23);
+		getContentPane().add(lb_11);
+
+		cb_scale = new JComboBox<ScaleItem>();
+		cb_scale.setBounds(82, 110, 115, 23);
+		ScaleItem[] scaleArr = new ScaleItem[6];
+		scaleArr[0] = new ScaleItem(100);
+		scaleArr[1] = new ScaleItem(90);
+		scaleArr[2] = new ScaleItem(80);
+		scaleArr[3] = new ScaleItem(70);
+		scaleArr[4] = new ScaleItem(60);
+		scaleArr[5] = new ScaleItem(50);
+		cb_scale.setModel(new DefaultComboBoxModel<ScaleItem>(scaleArr));
+		cb_scale.setSelectedIndex(0);
+		cb_scale.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				refreshQualitySize();
+			}
+		});
+		getContentPane().add(cb_scale);
+
+		lb_12 = new JLabel("录制模式：");
+		lb_12.setBounds(215, 111, 65, 23);
+		getContentPane().add(lb_12);
+
+		cb_model = new JComboBox<ModelItem>();
+		cb_model.setBounds(285, 110, 115, 23);
+		ModelItem[] modelArr = new ModelItem[2];
+		modelArr[0] = new ModelItem((byte) 0, "录制模式");
+		modelArr[1] = new ModelItem((byte) 1, "记录仪模式");
+		cb_model.setModel(new DefaultComboBoxModel<ModelItem>(modelArr));
+		cb_model.setSelectedIndex(0);
+		getContentPane().add(cb_model);
 
 		lb_6 = new JLabel("图像质量：");
-		lb_6.setBounds(12, 109, 65, 23);
+		lb_6.setBounds(12, 144, 65, 23);
 		getContentPane().add(lb_6);
 
 		lb_7 = new JLabel("高");
-		lb_7.setBounds(85, 109, 17, 23);
+		lb_7.setBounds(85, 144, 17, 23);
 		getContentPane().add(lb_7);
 
 		lb_8 = new JLabel("低");
-		lb_8.setBounds(222, 109, 17, 23);
+		lb_8.setBounds(222, 144, 17, 23);
 		getContentPane().add(lb_8);
 
 		lb_size = new JLabel("");
 		lb_size.setHorizontalAlignment(SwingConstants.RIGHT);
-		lb_size.setBounds(249, 109, 151, 23);
+		lb_size.setBounds(249, 144, 151, 23);
 		getContentPane().add(lb_size);
 
 		sd_qualityBits = new JSlider(2, 8, 8);
 		sd_qualityBits.setMajorTickSpacing(3);
 		sd_qualityBits.setMinorTickSpacing(1);
 		sd_qualityBits.setPaintTicks(true);
-		sd_qualityBits.setBounds(99, 108, 121, 30);
+		sd_qualityBits.setBounds(99, 143, 121, 30);
 		sd_qualityBits.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
@@ -469,12 +510,12 @@ public class ScreenCatcherWindow extends JFrame {
 		sd_qualityBits.setValue(2);
 
 		lb_9 = new JLabel("开始延迟：");
-		lb_9.setBounds(12, 140, 72, 23);
+		lb_9.setBounds(12, 175, 72, 23);
 		getContentPane().add(lb_9);
 
 		tf_startDelay = new JTextField();
 		tf_startDelay.setText("0");
-		tf_startDelay.setBounds(82, 140, 115, 23);
+		tf_startDelay.setBounds(82, 175, 115, 23);
 		tf_startDelay.addKeyListener(new NumKeyListener());
 		tf_startDelay.addFocusListener(new FocusAdapter() {
 			@Override
@@ -488,12 +529,12 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().add(tf_startDelay);
 
 		lb_10 = new JLabel("录制时长：");
-		lb_10.setBounds(215, 140, 72, 23);
+		lb_10.setBounds(215, 175, 72, 23);
 		getContentPane().add(lb_10);
 
 		tf_recordSecond = new JTextField();
 		tf_recordSecond.setText("15");
-		tf_recordSecond.setBounds(285, 140, 115, 23);
+		tf_recordSecond.setBounds(285, 175, 115, 23);
 		tf_recordSecond.addKeyListener(new NumKeyListener(MAX_MILLIS / 1000, tf_recordSecond));
 		tf_recordSecond.addFocusListener(new FocusAdapter() {
 			@Override
@@ -517,7 +558,7 @@ public class ScreenCatcherWindow extends JFrame {
 				});
 			}
 		});
-		btn_start.setBounds(12, 172, 185, 23);
+		btn_start.setBounds(12, 207, 185, 23);
 		getContentPane().add(btn_start);
 
 		btn_end = new JButton("结 束");
@@ -526,11 +567,11 @@ public class ScreenCatcherWindow extends JFrame {
 				end();
 			}
 		});
-		btn_end.setBounds(215, 172, 185, 23);
+		btn_end.setBounds(215, 207, 185, 23);
 		getContentPane().add(btn_end);
 
 		sp_1 = new JScrollPane();
-		sp_1.setBounds(12, 205, 388, 89);
+		sp_1.setBounds(12, 240, 388, 89);
 		getContentPane().add(sp_1);
 
 		ta_help = new JTextArea();
@@ -584,6 +625,9 @@ public class ScreenCatcherWindow extends JFrame {
 		setDVInterface(b2, false);
 		dvRecImage.setIcon(new ImageIcon(b2));
 		dvDialog.setVisible(true);
+
+		// TODO 录制模式
+		((ModelItem) cb_model.getSelectedItem()).getModel();
 
 		int num = 0;
 		int frames = ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames();
@@ -665,7 +709,7 @@ public class ScreenCatcherWindow extends JFrame {
 	private void outPutGif() {
 		String savePath = tf_setPath.getText() + File.separator + "sc_" + System.currentTimeMillis() / 1000 + ".gif";
 		int playDelay = 1000 / ((FPSItem) cb_playFrames.getSelectedItem()).getFrames();
-		JpgToGifUtil.bufferToGif(buffers.toArray(new BufferedImage[0]), savePath, playDelay, (byte) bitTValue(sd_qualityBits.getValue()));
+		JpgToGifUtil.bufferToGif(getResizeBufferedImages(buffers), savePath, playDelay, (byte) bitTValue(sd_qualityBits.getValue()));
 		// gif拷贝进系统剪贴板
 		JNIUtil.setGifToClipBoard(savePath);
 	}
@@ -677,6 +721,31 @@ public class ScreenCatcherWindow extends JFrame {
 		starting = false;
 		btn_start.setText("开 始");
 		dvDialog.setVisible(false);
+	}
+
+	/**
+	 * 压缩尺寸
+	 * 
+	 * @param buffers
+	 * @return
+	 */
+	private BufferedImage[] getResizeBufferedImages(List<BufferedImage> buffers) {
+		int sizePercent = ((ScaleItem) cb_scale.getSelectedItem()).getScale();
+		BufferedImage[] rtArr = new BufferedImage[buffers.size()];
+		int w = buffers.get(0).getWidth() * sizePercent / 100;
+		int h = buffers.get(0).getHeight() * sizePercent / 100;
+		// 显示进度条
+		ScreenCatcherWindow.progressWindow.progressBar.setMaximum(rtArr.length);
+		ScreenCatcherWindow.progressWindow.progressBar.setValue(0);
+		ScreenCatcherWindow.progressWindow.title.setText("分辨率压缩中...");
+		ScreenCatcherWindow.progressWindow.setVisible(true);
+		for (int i = 0; i < rtArr.length; i++) {
+			// 这里直接和Encoder的imageType保持一致，避免再次处理
+			rtArr[i] = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
+			rtArr[i].createGraphics().drawImage(buffers.get(i).getScaledInstance(w, h, Image.SCALE_SMOOTH), 0, 0, null);
+			ScreenCatcherWindow.progressWindow.progressBar.setValue(i + 1);
+		}
+		return rtArr;
 	}
 
 	/**
@@ -708,8 +777,10 @@ public class ScreenCatcherWindow extends JFrame {
 		if (rectangle.width > 0 && rectangle.height > 0) {
 			int bits = sd_qualityBits.getValue();
 			bits = bitTValue(bits);
-			lb_size.setText("预计：" + getFormatSize(sizeMap.get(bits) * 5 * ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames() * rectangle.width * rectangle.height / 1920 / 1080)
-					+ " / 5秒");
+			int scale = ((ScaleItem) cb_scale.getSelectedItem()).getScale();
+			int w = rectangle.width * scale / 100;
+			int h = rectangle.height * scale / 100;
+			lb_size.setText("预计：" + getFormatSize(sizeMap.get(bits) * 5 * ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames() * w * h / 1920 / 1080) + " / 5秒");
 		}
 	}
 
@@ -1007,6 +1078,54 @@ public class ScreenCatcherWindow extends JFrame {
 		@Override
 		public String toString() {
 			return frames + " 帧/秒";
+		}
+	}
+
+	/**
+	 * @author liyiyue
+	 * @date 2017年9月26日上午11:21:12
+	 * @desc 缩放
+	 */
+	private class ScaleItem {
+		/** 缩放百分数 */
+		private int scale;
+
+		public int getScale() {
+			return scale;
+		}
+
+		public ScaleItem(int scale) {
+			this.scale = scale;
+		}
+
+		@Override
+		public String toString() {
+			return scale + "%";
+		}
+	}
+
+	/**
+	 * @author liyiyue
+	 * @date 2017年9月26日上午11:21:12
+	 * @desc 模式
+	 */
+	private class ModelItem {
+		/** 模式 */
+		private byte model;
+		private String name;
+
+		public byte getModel() {
+			return model;
+		}
+
+		public ModelItem(byte model, String name) {
+			this.model = model;
+			this.name = name;
+		}
+
+		@Override
+		public String toString() {
+			return name;
 		}
 	}
 

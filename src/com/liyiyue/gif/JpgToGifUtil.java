@@ -44,7 +44,7 @@ public class JpgToGifUtil {
 			gifEncoder.setPaletteBits(colorBits);
 			ScreenCatcherWindow.progressWindow.progressBar.setMaximum(fromBuffers.length);
 			ScreenCatcherWindow.progressWindow.progressBar.setValue(0);
-			ScreenCatcherWindow.progressWindow.setVisible(true);
+			ScreenCatcherWindow.progressWindow.title.setText("保存中...");
 			for (int i = 0; i < fromBuffers.length; i++) {
 				gifEncoder.setDelay(frameMillis);
 				gifEncoder.addFrame(fromBuffers[i]);
