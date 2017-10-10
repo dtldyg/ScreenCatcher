@@ -70,6 +70,7 @@ public class ScreenCatcherWindow extends JFrame {
 
 	// 常量
 	private static final int MAX_MILLIS = 15 * 1000; // 可录制最大毫秒数
+	private static final int MAX_RECORD_SEC = 5;     // 记录仪记录的最大秒数
 	private static final int RECORD_SLEEP = 2;       // 录制每帧休眠
 	private static final int DV_MAX_LEN = 20;        // DV框线最大长度
 	private static final int DV_DIV = 4;             // DV框边长与框线的比值
@@ -224,6 +225,7 @@ public class ScreenCatcherWindow extends JFrame {
 			public void mouseClicked(MouseEvent e) {
 				if (e.getClickCount() >= 2) {
 					bgDialog.setVisible(false);
+					refreshQualitySize();
 				}
 			}
 		});
@@ -626,18 +628,26 @@ public class ScreenCatcherWindow extends JFrame {
 		dvRecImage.setIcon(new ImageIcon(b2));
 		dvDialog.setVisible(true);
 
-		// TODO 录制模式
-		((ModelItem) cb_model.getSelectedItem()).getModel();
-
+		// 模式
+		byte model = ((ModelItem) cb_model.getSelectedItem()).getModel();
+		// REC闪烁帧
 		int num = 0;
+		// 截取频率
 		int frames = ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames();
+		// 开始时间
 		long begin = System.currentTimeMillis();
+		// 录制时长
 		int recordSecond = isEmptyStr(tf_recordSecond.getText()) ? 0 : Integer.parseInt(tf_recordSecond.getText());
 		int maxMillis = recordSecond <= 0 ? MAX_MILLIS : recordSecond * 1000;
+		// 每帧延时
 		int delay = 1000 / frames;
+		// 已录时长
 		int totalSecond = 0;
 		long lastSecondMillis = 0;
+		// 上次截屏时间
 		long lastTime = 0;
+		// 循环录制最大帧数
+		int maxFrames = MAX_RECORD_SEC * frames;
 		while (starting) {
 			long currentTime = System.currentTimeMillis();
 			if (lastSecondMillis == 0) {
@@ -648,9 +658,11 @@ public class ScreenCatcherWindow extends JFrame {
 				totalSecond++;
 				btn_start.setText("录制中..." + totalSecond + "秒");
 			}
-			if ((currentTime - begin) >= maxMillis) {
-				end();
-				continue;
+			if (model == 0) {
+				if ((currentTime - begin) >= maxMillis) {
+					end();
+					continue;
+				}
 			}
 			if ((currentTime - lastTime) >= delay) {
 				lastTime = currentTime;
@@ -672,6 +684,11 @@ public class ScreenCatcherWindow extends JFrame {
 					}
 				}
 				// 截屏
+				if (model == 1) {
+					if (buffers.size() >= maxFrames) {
+						buffers.remove(0);
+					}
+				}
 				buffers.add(robot.createScreenCapture(rectangle));
 				if (setVisable) {
 					dvRecImage.setVisible(true);
