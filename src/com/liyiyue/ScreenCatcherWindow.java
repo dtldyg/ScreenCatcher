@@ -91,6 +91,8 @@ public class ScreenCatcherWindow extends JFrame {
 	private int mouse_x_i;       // 鼠标当前所在x_int
 	private int mouse_y_i;       // 鼠标当前所在y_int
 	private boolean mouse_shift; // 鼠标shift慢速移动中
+	private byte model;          // 录制模式
+	private boolean outPut;      // 是否保存gif
 	private int screen_w = Toolkit.getDefaultToolkit().getScreenSize().width;
 	private int screen_h = Toolkit.getDefaultToolkit().getScreenSize().height;
 
@@ -552,18 +554,25 @@ public class ScreenCatcherWindow extends JFrame {
 		btn_start = new JButton("开 始");
 		btn_start.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				executor.execute(new Runnable() {
-					@Override
-					public void run() {
-						start();
+				if (starting) {
+					if (model == 1) {
+						outPut = false;
+						end();
 					}
-				});
+				} else {
+					executor.execute(new Runnable() {
+						@Override
+						public void run() {
+							start();
+						}
+					});
+				}
 			}
 		});
 		btn_start.setBounds(12, 207, 185, 23);
 		getContentPane().add(btn_start);
 
-		btn_end = new JButton("结 束");
+		btn_end = new JButton("保 存");
 		btn_end.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				end();
@@ -610,10 +619,15 @@ public class ScreenCatcherWindow extends JFrame {
 		if (isEmptyStr(tf_setPath.getText()) || isEmptyStr(tf_areaW.getText()) || isEmptyStr(tf_areaH.getText())) {
 			return;
 		}
-		recordDelay();
-		buffers.clear();
 		starting = true;
-		btn_start.setText("录制中...0秒");
+		outPut = true;
+		buffers.clear();
+
+		// 锁定控件
+		lock();
+
+		// 开始延迟
+		recordDelay();
 
 		// 设置DV框
 		dvDialog.setBounds(rectangle.x - 1, rectangle.y - 1, rectangle.width + 2, rectangle.height + 2);
@@ -629,7 +643,7 @@ public class ScreenCatcherWindow extends JFrame {
 		dvDialog.setVisible(true);
 
 		// 模式
-		byte model = ((ModelItem) cb_model.getSelectedItem()).getModel();
+		model = ((ModelItem) cb_model.getSelectedItem()).getModel();
 		// REC闪烁帧
 		int num = 0;
 		// 截取频率
@@ -648,15 +662,22 @@ public class ScreenCatcherWindow extends JFrame {
 		long lastTime = 0;
 		// 循环录制最大帧数
 		int maxFrames = MAX_RECORD_SEC * frames;
+		if (model == 0) {
+			btn_start.setText("录制中...0秒");
+		} else if (model == 1) {
+			btn_start.setText("停 止");
+		}
 		while (starting) {
 			long currentTime = System.currentTimeMillis();
-			if (lastSecondMillis == 0) {
-				lastSecondMillis = currentTime;
-			}
-			if (currentTime - lastSecondMillis >= 1000) {
-				lastSecondMillis = currentTime;
-				totalSecond++;
-				btn_start.setText("录制中..." + totalSecond + "秒");
+			if (model == 0) {
+				if (lastSecondMillis == 0) {
+					lastSecondMillis = currentTime;
+				}
+				if (currentTime - lastSecondMillis >= 1000) {
+					lastSecondMillis = currentTime;
+					totalSecond++;
+					btn_start.setText("录制中..." + totalSecond + "秒");
+				}
 			}
 			if (model == 0) {
 				if ((currentTime - begin) >= maxMillis) {
@@ -700,8 +721,13 @@ public class ScreenCatcherWindow extends JFrame {
 				e.printStackTrace();
 			}
 		}
-		outPutGif();
+		if (outPut) {
+			outPutGif();
+		}
 		buffers.clear();
+
+		// 解锁控件
+		unLock();
 	}
 
 	/**
@@ -738,6 +764,36 @@ public class ScreenCatcherWindow extends JFrame {
 		starting = false;
 		btn_start.setText("开 始");
 		dvDialog.setVisible(false);
+	}
+
+	/**
+	 * 锁定控件
+	 */
+	private void lock() {
+		btn_setPath.setEnabled(false);
+		btn_setAera.setEnabled(false);
+		cb_cutFrames.setEnabled(false);
+		cb_playFrames.setEnabled(false);
+		cb_scale.setEnabled(false);
+		cb_model.setEnabled(false);
+		sd_qualityBits.setEnabled(false);
+		tf_startDelay.setEnabled(false);
+		tf_recordSecond.setEnabled(false);
+	}
+
+	/**
+	 * 解锁控件
+	 */
+	private void unLock() {
+		btn_setPath.setEnabled(true);
+		btn_setAera.setEnabled(true);
+		cb_cutFrames.setEnabled(true);
+		cb_playFrames.setEnabled(true);
+		cb_scale.setEnabled(true);
+		cb_model.setEnabled(true);
+		sd_qualityBits.setEnabled(true);
+		tf_startDelay.setEnabled(true);
+		tf_recordSecond.setEnabled(true);
 	}
 
 	/**
