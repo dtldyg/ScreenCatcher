@@ -77,17 +77,34 @@ int SetDataToClip(void)
     return 1;
 }
 
+char * JStringToCharArray(JNIEnv * pJNIEnv, jstring jstr)
+{
+    jsize len = pJNIEnv->GetStringLength( jstr );
+    const jchar * jcstr = pJNIEnv->GetStringChars( jstr, NULL );
+
+    int size = 0;
+    char * str = ( char * )malloc( len * 2 + 1 );
+    if ( (size = WideCharToMultiByte( CP_ACP, 0, LPCWSTR( jcstr ), len, str, len * 2 + 1, NULL, NULL ) ) == 0 )
+        return NULL;
+
+    pJNIEnv->ReleaseStringChars( jstr, jcstr );
+
+    str[ size ] = 0;
+    return str;
+}
+
 JNIEXPORT jboolean JNICALL Java_com_liyiyue_util_JNIUtil_setGifToClipBoard(JNIEnv* env, jclass obj, jstring jstr)
 {
-    const char *str = env->GetStringUTFChars(jstr, NULL);
+//    const char *str = env->GetStringUTFChars(jstr, NULL);
+    const char *str = JStringToCharArray(env, jstr);
 	if(CopyFileToClipboard(str))
 	{
 		if(SetDataToClip())
 		{
-			env->ReleaseStringUTFChars(jstr, str);
+//			env->ReleaseStringUTFChars(jstr, str);
 			return 1;
 		}
 	}
-	env->ReleaseStringUTFChars(jstr, str);
+//	env->ReleaseStringUTFChars(jstr, str);
 	return 1;
 }
