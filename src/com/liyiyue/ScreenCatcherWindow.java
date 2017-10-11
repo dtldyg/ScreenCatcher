@@ -588,7 +588,7 @@ public class ScreenCatcherWindow extends JFrame {
 		ta_help = new JTextArea();
 		ta_help.setLineWrap(true);
 		ta_help.setEditable(false);
-		ta_help.setText("说明：\r\n1.选择gif文件的“保存路径“\r\n2.设置gif“捕捉区域“，双击/Esc/回车均可返回\r\n3.选择“帧率“，截取频率建议不要太大\r\n4.选择“图像质量”，质量越高体积越大\r\n5.设定“开始延迟”和“录制时长”，0表示不设定。录制时长默认最大15秒\r\n6.点击“开始“，或使用全局快捷键“ALT+L”，开始录像\r\n7.点击“结束“，或使用全局快捷键“ALT+L”，保存gif\r\n8.使用全局快捷键“ALT+L”开始录像，再次使用结束\r\n\r\n建议：\r\n1.对于截取的画面颜色较少的情况，可适当调高画面质量");
+		ta_help.setText("***必看***\r\n● 全局快捷键：\r\n1.开始/保存   Alt+L\r\n● 小技巧：\r\n1.录制结束后，会自动将gif复制到系统剪贴板，直接去qq粘贴就行\r\n2.图像质量决定了颜色数量，录制区颜色少的情景下，可降低画质以减少体积\r\n● 录制模式：\r\n1.录制模式：录一段gif，手动结束或根据设定的录制时长结束（最长15秒）\r\n2.记录仪模式：开始后循环录制，当保存时，保存最近5秒的gif\r\n● 使用流程：\r\n1.选定保存路径\r\n2.设置捕捉区域（ESC、回车、双击都可以返回）\r\n3.设定相关参数（尤其是图像质量和缩放比例，决定了文件大小）\r\n4.录制");
 		ta_help.setCaretPosition(0);
 		sp_1.setViewportView(ta_help);
 
