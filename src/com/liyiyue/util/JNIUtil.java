@@ -7,7 +7,15 @@ public class JNIUtil {
 
 	private static boolean loaded;
 
+	/**
+	 * 将路径指定文件复制到系统剪贴板
+	 */
 	public static native boolean setGifToClipBoard(String path);
+
+	/**
+	 * 获取指定按键的状态
+	 */
+	public static native int getKeyState(byte[] chars);
 
 	public static void init() {
 		loaded = true;

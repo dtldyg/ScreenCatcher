@@ -28,8 +28,10 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -98,23 +100,26 @@ public class ScreenCatcherWindow extends JFrame {
 
 	// 成员变量
 	private static Executor executor = Executors.newSingleThreadExecutor();
-	private Robot robot;                 // 用以模拟截屏
-	private Rectangle rectangle;         // 截屏区域
-	private BufferedImage bImage;        // 原始背景图像
-	private BufferedImage bImageD;       // 绘制背景图像
-	private JDialog bgDialog;            // 用以选择截屏区域的组件
-	private BackgroundImage bgImg;       // 用以选择截屏区域，并绘制选框的背景
-	private List<BufferedImage> buffers; // 录屏序列
-	private boolean starting;            // 是否正在录制
-	private JDialog dvDialog;            // DV框组件
-	private JLabel dvImage;              // DV框背景
-	private JLabel dvRecImage;           // DV rec背景
-	private BufferedImage recImage;      // DV rec资源
-	private JLabel glassImage;           // 放大镜
-	private BufferedImage gImage;        // 放大镜背景图像
-	private JLabel glassInfo;            // 放大镜说明文字
-	private JLabel glassInfoBg;          // 放大镜说明背景
-	private Map<Integer, Long> sizeMap;  // 计算体积的map，字节/1920*1080/帧
+	private Robot robot;                     // 用以模拟截屏
+	private Rectangle rectangle;             // 截屏区域
+	private BufferedImage bImage;            // 原始背景图像
+	private BufferedImage bImageD;           // 绘制背景图像
+	private JDialog bgDialog;                // 用以选择截屏区域的组件
+	private BackgroundImage bgImg;           // 用以选择截屏区域，并绘制选框的背景
+	private List<BufferedImageInfo> buffers; // 录屏序列
+	private boolean starting;                // 是否正在录制
+	private JDialog dvDialog;                // DV框组件
+	private JLabel dvImage;                  // DV框背景
+	private JLabel dvRecImage;               // DV rec背景
+	private BufferedImage recImage;          // DV rec资源
+	private JLabel glassImage;               // 放大镜
+	private BufferedImage gImage;            // 放大镜背景图像
+	private JLabel glassInfo;                // 放大镜说明文字
+	private JLabel glassInfoBg;              // 放大镜说明背景
+	private Map<Integer, Long> sizeMap;      // 计算体积的map，字节/1920*1080/帧
+	private Map<Byte, Key> keyPress;        // 按键图片资源
+	private Map<Byte, Key> keyUnPress;      // 按键图片资源
+	private byte[] keyCodes;                 // 按键ascii码
 
 	// 组件
 	public static ProgressWindow progressWindow;
@@ -162,7 +167,7 @@ public class ScreenCatcherWindow extends JFrame {
 		JNIUtil.init();
 		robot = new Robot();
 		rectangle = new Rectangle();
-		buffers = new ArrayList<BufferedImage>();
+		buffers = new ArrayList<BufferedImageInfo>();
 		mouse_x_f = -1.0f;
 		mouse_y_f = -1.0f;
 		mouse_x_i = -1;
@@ -318,6 +323,25 @@ public class ScreenCatcherWindow extends JFrame {
 		dvDialog.getContentPane().add(dvImage);
 		AWTUtilities.setWindowOpaque(dvDialog, false);
 		recImage = ImageIO.read(getClass().getResourceAsStream("/res/pic_rec.png"));
+
+		// 按键资源初始化
+		int b1 = 5;
+		int b2 = 2;
+		int b3 = 5;
+		int l = 30;
+		keyPress = new HashMap<Byte, Key>();
+		keyPress.put((byte) 37, new Key((byte) 37, 1 << 0, ImageIO.read(getClass().getResourceAsStream("/res/left_p.png")), 3 * l + 2 * b2 + b1, l + b1));
+		keyPress.put((byte) 38, new Key((byte) 38, 1 << 1, ImageIO.read(getClass().getResourceAsStream("/res/up_p.png")), 2 * l + b2 + b1, 2 * l + b2 + b1));
+		keyPress.put((byte) 39, new Key((byte) 39, 1 << 2, ImageIO.read(getClass().getResourceAsStream("/res/right_p.png")), l + b1, l + b1));
+		keyPress.put((byte) 40, new Key((byte) 40, 1 << 3, ImageIO.read(getClass().getResourceAsStream("/res/down_p.png")), 2 * l + b2 + b1, l + b1));
+		keyPress.put((byte) 32, new Key((byte) 32, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/space_p.png")), 6 * l + b3 + 2 * b2 + b1, l + b1));
+		keyUnPress = new HashMap<Byte, Key>();
+		keyUnPress.put((byte) 37, new Key((byte) 37, 1 << 0, ImageIO.read(getClass().getResourceAsStream("/res/left_u.png")), 3 * l + 2 * b2 + b1, l + b1));
+		keyUnPress.put((byte) 38, new Key((byte) 38, 1 << 1, ImageIO.read(getClass().getResourceAsStream("/res/up_u.png")), 2 * l + b2 + b1, 2 * l + b2 + b1));
+		keyUnPress.put((byte) 39, new Key((byte) 39, 1 << 2, ImageIO.read(getClass().getResourceAsStream("/res/right_u.png")), l + b1, l + b1));
+		keyUnPress.put((byte) 40, new Key((byte) 40, 1 << 3, ImageIO.read(getClass().getResourceAsStream("/res/down_u.png")), 2 * l + b2 + b1, l + b1));
+		keyUnPress.put((byte) 32, new Key((byte) 32, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/space_u.png")), 6 * l + b3 + 2 * b2 + b1, l + b1));
+		keyCodes = new byte[] { 37, 38, 39, 40, 32 };
 
 		CacheUtil.init();
 	}
@@ -592,19 +616,26 @@ public class ScreenCatcherWindow extends JFrame {
 		ta_help.setCaretPosition(0);
 		sp_1.setViewportView(ta_help);
 
-		JIntellitype.getInstance().registerHotKey(1, JIntellitype.MOD_ALT, 'L');
+		// 注册开始快捷键
+		JIntellitype.getInstance().registerHotKey(0, JIntellitype.MOD_ALT, 'L');
 		JIntellitype.getInstance().addHotKeyListener(new HotkeyListener() {
 			@Override
-			public void onHotKey(int arg0) {
-				if (!starting) {
-					executor.execute(new Runnable() {
-						@Override
-						public void run() {
-							start();
-						}
-					});
-				} else {
-					end();
+			public void onHotKey(int keyCode) {
+				switch (keyCode) {
+				case 0:
+					if (!starting) {
+						executor.execute(new Runnable() {
+							@Override
+							public void run() {
+								start();
+							}
+						});
+					} else {
+						end();
+					}
+					break;
+				default:
+					break;
 				}
 			}
 		});
@@ -710,7 +741,10 @@ public class ScreenCatcherWindow extends JFrame {
 						buffers.remove(0);
 					}
 				}
-				buffers.add(robot.createScreenCapture(rectangle));
+				BufferedImageInfo info = new BufferedImageInfo();
+				info.image = robot.createScreenCapture(rectangle);
+				info.key = JNIUtil.getKeyState(keyCodes);
+				buffers.add(info);
 				if (setVisable) {
 					dvRecImage.setVisible(true);
 				}
@@ -797,28 +831,102 @@ public class ScreenCatcherWindow extends JFrame {
 	}
 
 	/**
-	 * 压缩尺寸
+	 * 获取某一帧的按键信息
+	 * 
+	 * @param bii
+	 * @return
+	 */
+	private Set<Byte> getKeyIndexSet(int info) {
+		Set<Byte> rt = new HashSet<Byte>();
+		if (info > 0) {
+			for (Key key : keyPress.values()) {
+				if ((info & key.bit) > 0) {
+					rt.add(key.index);
+				}
+			}
+		}
+		return rt;
+	}
+
+	/**
+	 * 压缩尺寸、写入按键信息
 	 * 
 	 * @param buffers
 	 * @return
 	 */
-	private BufferedImage[] getResizeBufferedImages(List<BufferedImage> buffers) {
+	private BufferedImage[] getResizeBufferedImages(List<BufferedImageInfo> buffers) {
 		int sizePercent = ((ScaleItem) cb_scale.getSelectedItem()).getScale();
 		BufferedImage[] rtArr = new BufferedImage[buffers.size()];
-		int w = buffers.get(0).getWidth() * sizePercent / 100;
-		int h = buffers.get(0).getHeight() * sizePercent / 100;
+		int w = buffers.get(0).image.getWidth() * sizePercent / 100;
+		int h = buffers.get(0).image.getHeight() * sizePercent / 100;
 		// 显示进度条
 		ScreenCatcherWindow.progressWindow.progressBar.setMaximum(rtArr.length);
 		ScreenCatcherWindow.progressWindow.progressBar.setValue(0);
-		ScreenCatcherWindow.progressWindow.title.setText("分辨率压缩中...");
+		ScreenCatcherWindow.progressWindow.title.setText("预处理中...");
 		ScreenCatcherWindow.progressWindow.setVisible(true);
 		for (int i = 0; i < rtArr.length; i++) {
-			// 这里直接和Encoder的imageType保持一致，避免再次处理
 			rtArr[i] = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
-			rtArr[i].createGraphics().drawImage(buffers.get(i).getScaledInstance(w, h, Image.SCALE_SMOOTH), 0, 0, null);
+			rtArr[i].createGraphics().drawImage(buffers.get(i).image.getScaledInstance(w, h, Image.SCALE_SMOOTH), 0, 0, null);
+			// 写入按键信息
+			writeKeyInfo(rtArr[i], buffers.get(i).key);
 			ScreenCatcherWindow.progressWindow.progressBar.setValue(i + 1);
 		}
 		return rtArr;
+	}
+
+	/**
+	 * 对每一帧，写入按键信息
+	 * 
+	 * @param bi
+	 * @param keyInfo
+	 */
+	private void writeKeyInfo(BufferedImage bi, int keyInfo) {
+		int w = bi.getWidth();
+		int h = bi.getHeight();
+		if (w < 240 || h < 120) return;
+		Set<Byte> set = getKeyIndexSet(keyInfo);
+		for (byte index : keyCodes) {
+			if (!set.isEmpty() && set.contains(index)) {
+				drawKey(bi, keyPress.get(index));
+			} else {
+				drawKey(bi, keyUnPress.get(index));
+			}
+		}
+	}
+
+	/**
+	 * 画一个按键
+	 * 
+	 * @param bi
+	 * @param key
+	 */
+	private void drawKey(BufferedImage bi, Key key) {
+		BufferedImage keyi = key.image;
+		for (int i = 0; i < keyi.getWidth(); i++) {
+			for (int j = 0; j < keyi.getHeight(); j++) {
+				// TODO 这里需要叠加下颜色
+				int x = bi.getWidth() - 1 + key.x_off + i;
+				int y = bi.getHeight() - 1 + key.y_off + j;
+				bi.setRGB(x, y, mixColor(bi.getRGB(x, y), keyi.getRGB(i, j)));
+			}
+		}
+	}
+
+	/**
+	 * 混合两种颜色，其中上面的层包含透明通道
+	 */
+	private int mixColor(int down, int up) {
+		int r_d = (down >> 16) & 0xff;
+		int g_d = (down >> 8) & 0xff;
+		int b_d = down & 0xff;
+		int a = (up >> 24) & 0xff;
+		int r_u = (up >> 16) & 0xff;
+		int g_u = (up >> 8) & 0xff;
+		int b_u = up & 0xff;
+		int r_n = r_d * (256 - a) / 256 + r_u * a / 256;
+		int g_n = g_d * (256 - a) / 256 + g_u * a / 256;
+		int b_n = b_d * (256 - a) / 256 + b_u * a / 256;
+		return (r_n << 16) | (g_n << 8) | b_n;
 	}
 
 	/**
@@ -1199,6 +1307,37 @@ public class ScreenCatcherWindow extends JFrame {
 		@Override
 		public String toString() {
 			return name;
+		}
+	}
+
+	/**
+	 * @author liyiyue
+	 * @date 2017年10月12日下午12:27:07
+	 * @desc 包含额外信息的BufferedImage
+	 */
+	public class BufferedImageInfo {
+		public BufferedImage image;
+		public int key;
+	}
+
+	/**
+	 * @author liyiyue
+	 * @date 2017年10月12日下午2:30:03
+	 * @desc 按键
+	 */
+	public class Key {
+		byte index;
+		int bit;
+		BufferedImage image;
+		int x_off;
+		int y_off;
+
+		public Key(byte index, int bit, BufferedImage image, int x_off, int y_off) {
+			this.index = index;
+			this.bit = bit;
+			this.image = image;
+			this.x_off = -x_off;
+			this.y_off = -y_off;
 		}
 	}
 

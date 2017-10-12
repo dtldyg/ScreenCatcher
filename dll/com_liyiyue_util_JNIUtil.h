@@ -15,6 +15,14 @@ extern "C" {
 JNIEXPORT jboolean JNICALL Java_com_liyiyue_util_JNIUtil_setGifToClipBoard
   (JNIEnv *, jclass, jstring);
 
+/*
+ * Class:     com_liyiyue_util_JNIUtil
+ * Method:    getKeyState
+ * Signature: ([C)I
+ */
+JNIEXPORT jint JNICALL Java_com_liyiyue_util_JNIUtil_getKeyState
+  (JNIEnv *, jclass, jcharArray);
+
 #ifdef __cplusplus
 }
 #endif
