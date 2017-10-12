@@ -11,3 +11,5 @@ When you recording, there is a recording frame on the top of the screen
 When finish record, the gif file will be auto copied into the Windows clipboard, and you can ctrl+v in TencentQQ
 - 记录仪模式，当位于这种模式下，程序会循环录像。当点击结束时，会自动保存最近5秒的影像  
 Grapher Model, when in this model, program will record cyclic. When finish, it will save 5 seconds video currently
+- 录制中，会记录方向键和空格键，用于赛车游戏  
+It can also record the position_key and space_key when you are recording, it is useful when playing car game
