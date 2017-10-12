@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <shlobj.h>
 
+#define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0) // 判断按键是否被按下
+
 // 复制文件到剪切板
 int CopyFileToClipboard(const char szFileName[])
 {
@@ -107,4 +109,18 @@ JNIEXPORT jboolean JNICALL Java_com_liyiyue_util_JNIUtil_setGifToClipBoard(JNIEn
 	}
 //	env->ReleaseStringUTFChars(jstr, str);
 	return 1;
+}
+
+JNIEXPORT jint JNICALL Java_com_liyiyue_util_JNIUtil_getKeyState(JNIEnv* env, jclass obj, jbyteArray jbyteArr)
+{
+	jbyte* byteArr = env->GetByteArrayElements(jbyteArr, 0);
+	int rt = 0;
+    for(int i = 0; i < env->GetArrayLength(jbyteArr); i++)
+	{
+        if(KEY_DOWN(byteArr[i]))
+		{
+            rt |= (1 << i);
+		}
+    }
+	return rt;
 }

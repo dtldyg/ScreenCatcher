@@ -18,10 +18,10 @@ JNIEXPORT jboolean JNICALL Java_com_liyiyue_util_JNIUtil_setGifToClipBoard
 /*
  * Class:     com_liyiyue_util_JNIUtil
  * Method:    getKeyState
- * Signature: ([C)I
+ * Signature: ([B)I
  */
 JNIEXPORT jint JNICALL Java_com_liyiyue_util_JNIUtil_getKeyState
-  (JNIEnv *, jclass, jcharArray);
+  (JNIEnv *, jclass, jbyteArray);
 
 #ifdef __cplusplus
 }
