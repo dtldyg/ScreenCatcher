@@ -39,6 +39,7 @@ import javax.imageio.ImageIO;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -147,6 +148,7 @@ public class ScreenCatcherWindow extends JFrame {
 	private JComboBox<ScaleItem> cb_scale;
 	private JLabel lb_12;
 	private JComboBox<ModelItem> cb_model;
+	private JCheckBox ckb_recordKey;
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -357,7 +359,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().setLayout(null);
 		setTitle("GIF屏幕录像宗师");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(600, 300, 422, 370);
+		setBounds(600, 300, 422, 397);
 		setAlwaysOnTop(true);
 		setResizable(false);
 
@@ -593,8 +595,14 @@ public class ScreenCatcherWindow extends JFrame {
 				}
 			}
 		});
-		btn_start.setBounds(12, 207, 185, 23);
+		btn_start.setBounds(12, 237, 185, 23);
 		getContentPane().add(btn_start);
+
+		ckb_recordKey = new JCheckBox("记录控制键");
+		ckb_recordKey.setSelected(true);
+		ckb_recordKey.setHorizontalAlignment(SwingConstants.RIGHT);
+		ckb_recordKey.setBounds(297, 207, 103, 23);
+		getContentPane().add(ckb_recordKey);
 
 		btn_end = new JButton("保 存");
 		btn_end.addActionListener(new ActionListener() {
@@ -602,11 +610,11 @@ public class ScreenCatcherWindow extends JFrame {
 				end();
 			}
 		});
-		btn_end.setBounds(215, 207, 185, 23);
+		btn_end.setBounds(215, 237, 185, 23);
 		getContentPane().add(btn_end);
 
 		sp_1 = new JScrollPane();
-		sp_1.setBounds(12, 240, 388, 89);
+		sp_1.setBounds(12, 270, 388, 89);
 		getContentPane().add(sp_1);
 
 		ta_help = new JTextArea();
@@ -743,7 +751,12 @@ public class ScreenCatcherWindow extends JFrame {
 				}
 				BufferedImageInfo info = new BufferedImageInfo();
 				info.image = robot.createScreenCapture(rectangle);
-				info.key = JNIUtil.getKeyState(keyCodes);
+				// 是否记录按键
+				if (ckb_recordKey.isSelected()) {
+					info.key = JNIUtil.getKeyState(keyCodes);
+				} else {
+					info.key = 0;
+				}
 				buffers.add(info);
 				if (setVisable) {
 					dvRecImage.setVisible(true);
@@ -813,6 +826,7 @@ public class ScreenCatcherWindow extends JFrame {
 		sd_qualityBits.setEnabled(false);
 		tf_startDelay.setEnabled(false);
 		tf_recordSecond.setEnabled(false);
+		ckb_recordKey.setEnabled(false);
 	}
 
 	/**
@@ -828,6 +842,7 @@ public class ScreenCatcherWindow extends JFrame {
 		sd_qualityBits.setEnabled(true);
 		tf_startDelay.setEnabled(true);
 		tf_recordSecond.setEnabled(true);
+		ckb_recordKey.setEnabled(true);
 	}
 
 	/**
@@ -867,8 +882,10 @@ public class ScreenCatcherWindow extends JFrame {
 		for (int i = 0; i < rtArr.length; i++) {
 			rtArr[i] = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
 			rtArr[i].createGraphics().drawImage(buffers.get(i).image.getScaledInstance(w, h, Image.SCALE_SMOOTH), 0, 0, null);
-			// 写入按键信息
-			writeKeyInfo(rtArr[i], buffers.get(i).key);
+			// 是否记录按键
+			if (ckb_recordKey.isSelected()) {
+				writeKeyInfo(rtArr[i], buffers.get(i).key);
+			}
 			ScreenCatcherWindow.progressWindow.progressBar.setValue(i + 1);
 		}
 		return rtArr;
