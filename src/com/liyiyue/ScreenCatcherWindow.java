@@ -904,7 +904,6 @@ public class ScreenCatcherWindow extends JFrame {
 		BufferedImage keyi = key.image;
 		for (int i = 0; i < keyi.getWidth(); i++) {
 			for (int j = 0; j < keyi.getHeight(); j++) {
-				// TODO 这里需要叠加下颜色
 				int x = bi.getWidth() - 1 + key.x_off + i;
 				int y = bi.getHeight() - 1 + key.y_off + j;
 				bi.setRGB(x, y, mixColor(bi.getRGB(x, y), keyi.getRGB(i, j)));
