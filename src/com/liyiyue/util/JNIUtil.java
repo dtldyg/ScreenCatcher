@@ -13,7 +13,7 @@ public class JNIUtil {
 	public static native boolean setGifToClipBoard(String path);
 
 	/**
-	 * 获取指定按键的状态
+	 * 获取指定按键的状态，用int按位返回，数组下标为位索引
 	 */
 	public static native int getKeyState(byte[] chars);
 

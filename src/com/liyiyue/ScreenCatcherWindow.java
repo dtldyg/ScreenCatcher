@@ -67,7 +67,6 @@ import com.sun.awt.AWTUtilities;
  * @date 2017年9月25日下午7:52:39
  * @desc GIF屏幕录像宗师
  */
-@SuppressWarnings("restriction")
 public class ScreenCatcherWindow extends JFrame {
 	private static final long serialVersionUID = 1L;
 
@@ -118,8 +117,8 @@ public class ScreenCatcherWindow extends JFrame {
 	private JLabel glassInfo;                // 放大镜说明文字
 	private JLabel glassInfoBg;              // 放大镜说明背景
 	private Map<Integer, Long> sizeMap;      // 计算体积的map，字节/1920*1080/帧
-	private Map<Byte, Key> keyPress;        // 按键图片资源
-	private Map<Byte, Key> keyUnPress;      // 按键图片资源
+	private Map<Byte, Key> keyPress;         // 按键图片资源
+	private Map<Byte, Key> keyUnPress;       // 按键图片资源
 	private byte[] keyCodes;                 // 按键ascii码
 
 	// 组件
@@ -327,23 +326,31 @@ public class ScreenCatcherWindow extends JFrame {
 		recImage = ImageIO.read(getClass().getResourceAsStream("/res/pic_rec.png"));
 
 		// 按键资源初始化
-		int b1 = 5;
-		int b2 = 2;
-		int b3 = 5;
-		int l = 30;
+		int b1 = 5; // 右、下到边框距离
+		int b2 = 2; // 按键之间距离
+		int b3 = 5; // 不同按键组之间距离
+		int l = 30; // 按键长度
 		keyPress = new HashMap<Byte, Key>();
 		keyPress.put((byte) 37, new Key((byte) 37, 1 << 0, ImageIO.read(getClass().getResourceAsStream("/res/left_p.png")), 3 * l + 2 * b2 + b1, l + b1));
 		keyPress.put((byte) 38, new Key((byte) 38, 1 << 1, ImageIO.read(getClass().getResourceAsStream("/res/up_p.png")), 2 * l + b2 + b1, 2 * l + b2 + b1));
 		keyPress.put((byte) 39, new Key((byte) 39, 1 << 2, ImageIO.read(getClass().getResourceAsStream("/res/right_p.png")), l + b1, l + b1));
 		keyPress.put((byte) 40, new Key((byte) 40, 1 << 3, ImageIO.read(getClass().getResourceAsStream("/res/down_p.png")), 2 * l + b2 + b1, l + b1));
-		keyPress.put((byte) 32, new Key((byte) 32, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/space_p.png")), 6 * l + b3 + 2 * b2 + b1, l + b1));
+//		keyPress.put((byte) 32, new Key((byte) 32, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/space_p.png")), 6 * l + b3 + 2 * b2 + b1, l + b1));
+		keyPress.put((byte) 87, new Key((byte) 87, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/w_p.png")), 5 * l + b3 + 3 * b2 + b1, 2 * l + b2 + b1));
+		keyPress.put((byte) 83, new Key((byte) 83, 1 << 5, ImageIO.read(getClass().getResourceAsStream("/res/s_p.png")), 5 * l + b3 + 3 * b2 + b1, l + b1));
+		keyPress.put((byte) 65, new Key((byte) 65, 1 << 6, ImageIO.read(getClass().getResourceAsStream("/res/a_p.png")), 6 * l + b3 + 4 * b2 + b1, l + b1));
+		keyPress.put((byte) 68, new Key((byte) 68, 1 << 7, ImageIO.read(getClass().getResourceAsStream("/res/d_p.png")), 4 * l + b3 + 2 * b2 + b1, l + b1));
 		keyUnPress = new HashMap<Byte, Key>();
 		keyUnPress.put((byte) 37, new Key((byte) 37, 1 << 0, ImageIO.read(getClass().getResourceAsStream("/res/left_u.png")), 3 * l + 2 * b2 + b1, l + b1));
 		keyUnPress.put((byte) 38, new Key((byte) 38, 1 << 1, ImageIO.read(getClass().getResourceAsStream("/res/up_u.png")), 2 * l + b2 + b1, 2 * l + b2 + b1));
 		keyUnPress.put((byte) 39, new Key((byte) 39, 1 << 2, ImageIO.read(getClass().getResourceAsStream("/res/right_u.png")), l + b1, l + b1));
 		keyUnPress.put((byte) 40, new Key((byte) 40, 1 << 3, ImageIO.read(getClass().getResourceAsStream("/res/down_u.png")), 2 * l + b2 + b1, l + b1));
-		keyUnPress.put((byte) 32, new Key((byte) 32, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/space_u.png")), 6 * l + b3 + 2 * b2 + b1, l + b1));
-		keyCodes = new byte[] { 37, 38, 39, 40, 32 };
+//		keyUnPress.put((byte) 32, new Key((byte) 32, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/space_u.png")), 6 * l + b3 + 2 * b2 + b1, l + b1));
+		keyUnPress.put((byte) 87, new Key((byte) 87, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/w_u.png")), 5 * l + b3 + 3 * b2 + b1, 2 * l + b2 + b1));
+		keyUnPress.put((byte) 83, new Key((byte) 83, 1 << 5, ImageIO.read(getClass().getResourceAsStream("/res/s_u.png")), 5 * l + b3 + 3 * b2 + b1, l + b1));
+		keyUnPress.put((byte) 65, new Key((byte) 65, 1 << 6, ImageIO.read(getClass().getResourceAsStream("/res/a_u.png")), 6 * l + b3 + 4 * b2 + b1, l + b1));
+		keyUnPress.put((byte) 68, new Key((byte) 68, 1 << 7, ImageIO.read(getClass().getResourceAsStream("/res/d_u.png")), 4 * l + b3 + 2 * b2 + b1, l + b1));
+		keyCodes = new byte[] { 37, 38, 39, 40, 87, 83, 65, 68 }; // 上下左右、wsad
 
 		CacheUtil.init();
 	}
