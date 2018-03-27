@@ -475,13 +475,18 @@ public class ScreenCatcherWindow extends JFrame {
 
 		cb_scale = new JComboBox<ScaleItem>();
 		cb_scale.setBounds(82, 110, 115, 23);
-		ScaleItem[] scaleArr = new ScaleItem[6];
+		ScaleItem[] scaleArr = new ScaleItem[11];
 		scaleArr[0] = new ScaleItem(100);
 		scaleArr[1] = new ScaleItem(90);
 		scaleArr[2] = new ScaleItem(80);
 		scaleArr[3] = new ScaleItem(70);
 		scaleArr[4] = new ScaleItem(60);
 		scaleArr[5] = new ScaleItem(50);
+		scaleArr[6] = new ScaleItem(40);
+		scaleArr[7] = new ScaleItem(30);
+		scaleArr[8] = new ScaleItem(20);
+		scaleArr[9] = new ScaleItem(10);
+		scaleArr[10] = new ScaleItem(5);
 		cb_scale.setModel(new DefaultComboBoxModel<ScaleItem>(scaleArr));
 		cb_scale.setSelectedIndex(0);
 		cb_scale.addActionListener(new ActionListener() {
@@ -606,7 +611,7 @@ public class ScreenCatcherWindow extends JFrame {
 		getContentPane().add(btn_start);
 
 		ckb_recordKey = new JCheckBox("记录控制键");
-		ckb_recordKey.setSelected(true);
+		ckb_recordKey.setSelected(false);
 		ckb_recordKey.setHorizontalAlignment(SwingConstants.RIGHT);
 		ckb_recordKey.setBounds(297, 207, 103, 23);
 		getContentPane().add(ckb_recordKey);
