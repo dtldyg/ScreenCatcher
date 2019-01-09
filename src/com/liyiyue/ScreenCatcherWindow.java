@@ -45,6 +45,7 @@ import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTextArea;
@@ -72,57 +73,58 @@ public class ScreenCatcherWindow extends JFrame {
 
 	// 常量
 	private static final int MAX_MILLIS = 15 * 1000; // 可录制最大毫秒数
-	private static final int MAX_RECORD_SEC = 5;     // 记录仪记录的最大秒数
-	private static final int RECORD_SLEEP = 2;       // 录制每帧休眠
-	private static final int DV_MAX_LEN = 20;        // DV框线最大长度
-	private static final int DV_DIV = 4;             // DV框边长与框线的比值
-	private static final int GLASS_LEN = 161;        // 放大镜边长
-	private static final int GLASS_INFO_W = 110;     // 放大镜信息长
-	private static final int GLASS_INFO_H = 20;      // 放大镜信息宽
-	private static final int MOUSE_SLOW = 4;         // 鼠标慢速移动
+	private static final int MAX_RECORD_SEC = 5; // 记录仪记录的最大秒数
+	private static final int RECORD_SLEEP = 2; // 录制每帧休眠
+	private static final int DV_MAX_LEN = 20; // DV框线最大长度
+	private static final int DV_DIV = 4; // DV框边长与框线的比值
+	private static final int GLASS_LEN = 161; // 放大镜边长
+	private static final int GLASS_INFO_W = 110; // 放大镜信息长
+	private static final int GLASS_INFO_H = 20; // 放大镜信息宽
+	private static final int MOUSE_SLOW = 4; // 鼠标慢速移动
 
 	// 全局参数
-	private int area_x;          // 选框左上角x
-	private int area_y;          // 选框左上角y
-	private int mouse_x_r;       // 鼠标拖动选框时的相对x
-	private int mouse_y_r;       // 鼠标拖动选框时的相对y
-	private byte cursor;         // 鼠标指针样式，0默认、1十字、2拖动
-	private boolean mouse_move;  // 鼠标拖动选框中
-	private float mouse_x_f;     // 鼠标当前所在x_float
-	private float mouse_y_f;     // 鼠标当前所在y_float
-	private int mouse_x_i;       // 鼠标当前所在x_int
-	private int mouse_y_i;       // 鼠标当前所在y_int
+	private int area_x; // 选框左上角x
+	private int area_y; // 选框左上角y
+	private int mouse_x_r; // 鼠标拖动选框时的相对x
+	private int mouse_y_r; // 鼠标拖动选框时的相对y
+	private byte cursor; // 鼠标指针样式，0默认、1十字、2拖动
+	private boolean mouse_move; // 鼠标拖动选框中
+	private float mouse_x_f; // 鼠标当前所在x_float
+	private float mouse_y_f; // 鼠标当前所在y_float
+	private int mouse_x_i; // 鼠标当前所在x_int
+	private int mouse_y_i; // 鼠标当前所在y_int
 	private boolean mouse_shift; // 鼠标shift慢速移动中
-	private byte model;          // 录制模式
-	private boolean outPut;      // 是否保存gif
+	private byte model; // 录制模式
+	private boolean outPut; // 是否保存gif
 	private int screen_w = Toolkit.getDefaultToolkit().getScreenSize().width;
 	private int screen_h = Toolkit.getDefaultToolkit().getScreenSize().height;
 
 	// 成员变量
 	private static Executor executor = Executors.newSingleThreadExecutor();
-	private Robot robot;                     // 用以模拟截屏
-	private Rectangle rectangle;             // 截屏区域
-	private BufferedImage bImage;            // 原始背景图像
-	private BufferedImage bImageD;           // 绘制背景图像
-	private JDialog bgDialog;                // 用以选择截屏区域的组件
-	private BackgroundImage bgImg;           // 用以选择截屏区域，并绘制选框的背景
+	private Robot robot; // 用以模拟截屏
+	private Rectangle rectangle; // 截屏区域
+	private BufferedImage bImage; // 原始背景图像
+	private BufferedImage bImageD; // 绘制背景图像
+	private JDialog bgDialog; // 用以选择截屏区域的组件
+	private BackgroundImage bgImg; // 用以选择截屏区域，并绘制选框的背景
 	private List<BufferedImageInfo> buffers; // 录屏序列
-	private boolean starting;                // 是否正在录制
-	private JDialog dvDialog;                // DV框组件
-	private JLabel dvImage;                  // DV框背景
-	private JLabel dvRecImage;               // DV rec背景
-	private BufferedImage recImage;          // DV rec资源
-	private JLabel glassImage;               // 放大镜
-	private BufferedImage gImage;            // 放大镜背景图像
-	private JLabel glassInfo;                // 放大镜说明文字
-	private JLabel glassInfoBg;              // 放大镜说明背景
-	private Map<Integer, Long> sizeMap;      // 计算体积的map，字节/1920*1080/帧
-	private Map<Byte, Key> keyPress;         // 按键图片资源
-	private Map<Byte, Key> keyUnPress;       // 按键图片资源
-	private byte[] keyCodes;                 // 按键ascii码
+	private boolean starting; // 是否正在录制
+	private JDialog dvDialog; // DV框组件
+	private JLabel dvImage; // DV框背景
+	private JLabel dvRecImage; // DV rec背景
+	private BufferedImage recImage; // DV rec资源
+	private JLabel glassImage; // 放大镜
+	private BufferedImage gImage; // 放大镜背景图像
+	private JLabel glassInfo; // 放大镜说明文字
+	private JLabel glassInfoBg; // 放大镜说明背景
+	private Map<Integer, Long> sizeMap; // 计算体积的map，字节/1920*1080/帧
+	private Map<Byte, Key> keyPress; // 按键图片资源
+	private Map<Byte, Key> keyUnPress; // 按键图片资源
+	private byte[] keyCodes; // 按键ascii码
 
 	// 组件
 	public static ProgressWindow progressWindow;
+	public static ScreenCatcherWindow mainWindow;
 	private JLabel lb_1;
 	private JTextField tf_setPath;
 	private JButton btn_setPath;
@@ -153,8 +155,8 @@ public class ScreenCatcherWindow extends JFrame {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					ScreenCatcherWindow window = new ScreenCatcherWindow();
-					window.setVisible(true);
+					mainWindow = new ScreenCatcherWindow();
+					mainWindow.setVisible(true);
 
 					progressWindow = new ProgressWindow();
 				} catch (Exception e) {
@@ -245,10 +247,14 @@ public class ScreenCatcherWindow extends JFrame {
 				if (mouse_move) {
 					int tmp_x = mouse_x_i - mouse_x_r;
 					int tmp_y = mouse_y_i - mouse_y_r;
-					if (tmp_x < 0) tmp_x = 0;
-					if (tmp_y < 0) tmp_y = 0;
-					if (tmp_x > screen_w - bgImg.w) tmp_x = screen_w - bgImg.w;
-					if (tmp_y > screen_h - bgImg.h) tmp_y = screen_h - bgImg.h;
+					if (tmp_x < 0)
+						tmp_x = 0;
+					if (tmp_y < 0)
+						tmp_y = 0;
+					if (tmp_x > screen_w - bgImg.w)
+						tmp_x = screen_w - bgImg.w;
+					if (tmp_y > screen_h - bgImg.h)
+						tmp_y = screen_h - bgImg.h;
 					area_x = tmp_x;
 					area_y = tmp_y;
 					bgImg.drawRectangle(area_x, area_y, area_x + bgImg.w - 1, area_y + bgImg.h - 1);
@@ -335,8 +341,11 @@ public class ScreenCatcherWindow extends JFrame {
 		keyPress.put((byte) 38, new Key((byte) 38, 1 << 1, ImageIO.read(getClass().getResourceAsStream("/res/up_p.png")), 2 * l + b2 + b1, 2 * l + b2 + b1));
 		keyPress.put((byte) 39, new Key((byte) 39, 1 << 2, ImageIO.read(getClass().getResourceAsStream("/res/right_p.png")), l + b1, l + b1));
 		keyPress.put((byte) 40, new Key((byte) 40, 1 << 3, ImageIO.read(getClass().getResourceAsStream("/res/down_p.png")), 2 * l + b2 + b1, l + b1));
-//		keyPress.put((byte) 32, new Key((byte) 32, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/space_p.png")), 6 * l + b3 + 2 * b2 + b1, l + b1));
-		keyPress.put((byte) 87, new Key((byte) 87, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/w_p.png")), 5 * l + b3 + 3 * b2 + b1, 2 * l + b2 + b1));
+		// keyPress.put((byte) 32, new Key((byte) 32, 1 << 4,
+		// ImageIO.read(getClass().getResourceAsStream("/res/space_p.png")), 6 *
+		// l + b3 + 2 * b2 + b1, l + b1));
+		keyPress.put((byte) 87,
+				new Key((byte) 87, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/w_p.png")), 5 * l + b3 + 3 * b2 + b1, 2 * l + b2 + b1));
 		keyPress.put((byte) 83, new Key((byte) 83, 1 << 5, ImageIO.read(getClass().getResourceAsStream("/res/s_p.png")), 5 * l + b3 + 3 * b2 + b1, l + b1));
 		keyPress.put((byte) 65, new Key((byte) 65, 1 << 6, ImageIO.read(getClass().getResourceAsStream("/res/a_p.png")), 6 * l + b3 + 4 * b2 + b1, l + b1));
 		keyPress.put((byte) 68, new Key((byte) 68, 1 << 7, ImageIO.read(getClass().getResourceAsStream("/res/d_p.png")), 4 * l + b3 + 2 * b2 + b1, l + b1));
@@ -345,8 +354,11 @@ public class ScreenCatcherWindow extends JFrame {
 		keyUnPress.put((byte) 38, new Key((byte) 38, 1 << 1, ImageIO.read(getClass().getResourceAsStream("/res/up_u.png")), 2 * l + b2 + b1, 2 * l + b2 + b1));
 		keyUnPress.put((byte) 39, new Key((byte) 39, 1 << 2, ImageIO.read(getClass().getResourceAsStream("/res/right_u.png")), l + b1, l + b1));
 		keyUnPress.put((byte) 40, new Key((byte) 40, 1 << 3, ImageIO.read(getClass().getResourceAsStream("/res/down_u.png")), 2 * l + b2 + b1, l + b1));
-//		keyUnPress.put((byte) 32, new Key((byte) 32, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/space_u.png")), 6 * l + b3 + 2 * b2 + b1, l + b1));
-		keyUnPress.put((byte) 87, new Key((byte) 87, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/w_u.png")), 5 * l + b3 + 3 * b2 + b1, 2 * l + b2 + b1));
+		// keyUnPress.put((byte) 32, new Key((byte) 32, 1 << 4,
+		// ImageIO.read(getClass().getResourceAsStream("/res/space_u.png")), 6 *
+		// l + b3 + 2 * b2 + b1, l + b1));
+		keyUnPress.put((byte) 87,
+				new Key((byte) 87, 1 << 4, ImageIO.read(getClass().getResourceAsStream("/res/w_u.png")), 5 * l + b3 + 3 * b2 + b1, 2 * l + b2 + b1));
 		keyUnPress.put((byte) 83, new Key((byte) 83, 1 << 5, ImageIO.read(getClass().getResourceAsStream("/res/s_u.png")), 5 * l + b3 + 3 * b2 + b1, l + b1));
 		keyUnPress.put((byte) 65, new Key((byte) 65, 1 << 6, ImageIO.read(getClass().getResourceAsStream("/res/a_u.png")), 6 * l + b3 + 4 * b2 + b1, l + b1));
 		keyUnPress.put((byte) 68, new Key((byte) 68, 1 << 7, ImageIO.read(getClass().getResourceAsStream("/res/d_u.png")), 4 * l + b3 + 2 * b2 + b1, l + b1));
@@ -632,33 +644,38 @@ public class ScreenCatcherWindow extends JFrame {
 		ta_help = new JTextArea();
 		ta_help.setLineWrap(true);
 		ta_help.setEditable(false);
-		ta_help.setText("***必看***\r\n● 全局快捷键：\r\n1.开始/保存   Alt+L\r\n● 小技巧：\r\n1.录制结束后，会自动将gif复制到系统剪贴板，直接去qq粘贴就行\r\n2.图像质量决定了颜色数量，录制区颜色少的情景下，可降低画质以减少体积\r\n● 录制模式：\r\n1.录制模式：录一段gif，手动结束或根据设定的录制时长结束（最长15秒）\r\n2.记录仪模式：开始后循环录制，当保存时，保存最近5秒的gif\r\n● 使用流程：\r\n1.选定保存路径\r\n2.设置捕捉区域（ESC、回车、双击都可以返回）\r\n3.设定相关参数（尤其是图像质量和缩放比例，决定了文件大小）\r\n4.录制");
+		ta_help.setText(
+				"***必看***\r\n● 全局快捷键：\r\n1.开始/保存   Alt+L\r\n● 小技巧：\r\n1.录制结束后，会自动将gif复制到系统剪贴板，直接去qq粘贴就行\r\n2.图像质量决定了颜色数量，录制区颜色少的情景下，可降低画质以减少体积\r\n● 录制模式：\r\n1.录制模式：录一段gif，手动结束或根据设定的录制时长结束（最长15秒）\r\n2.记录仪模式：开始后循环录制，当保存时，保存最近5秒的gif\r\n● 使用流程：\r\n1.选定保存路径\r\n2.设置捕捉区域（ESC、回车、双击都可以返回）\r\n3.设定相关参数（尤其是图像质量和缩放比例，决定了文件大小）\r\n4.录制");
 		ta_help.setCaretPosition(0);
 		sp_1.setViewportView(ta_help);
 
 		// 注册开始快捷键
-		JIntellitype.getInstance().registerHotKey(0, JIntellitype.MOD_ALT, 'L');
-		JIntellitype.getInstance().addHotKeyListener(new HotkeyListener() {
-			@Override
-			public void onHotKey(int keyCode) {
-				switch (keyCode) {
-				case 0:
-					if (!starting) {
-						executor.execute(new Runnable() {
-							@Override
-							public void run() {
-								start();
-							}
-						});
-					} else {
-						end();
+		try {
+			JIntellitype.getInstance().registerHotKey(0, JIntellitype.MOD_ALT, 'L');
+			JIntellitype.getInstance().addHotKeyListener(new HotkeyListener() {
+				@Override
+				public void onHotKey(int keyCode) {
+					switch (keyCode) {
+					case 0:
+						if (!starting) {
+							executor.execute(new Runnable() {
+								@Override
+								public void run() {
+									start();
+								}
+							});
+						} else {
+							end();
+						}
+						break;
+					default:
+						break;
 					}
-					break;
-				default:
-					break;
 				}
-			}
-		});
+			});
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(mainWindow, e.toString());
+		}
 	}
 
 	/**
@@ -793,7 +810,8 @@ public class ScreenCatcherWindow extends JFrame {
 	 * 开始延迟
 	 */
 	private void recordDelay() {
-		if (isEmptyStr(tf_startDelay.getText()) || Integer.parseInt(tf_startDelay.getText()) <= 0) return;
+		if (isEmptyStr(tf_startDelay.getText()) || Integer.parseInt(tf_startDelay.getText()) <= 0)
+			return;
 		int delaySecond = Integer.parseInt(tf_startDelay.getText());
 		for (int i = delaySecond; i > 0; i--) {
 			btn_start.setText("倒计时：" + i + "秒");
@@ -912,7 +930,8 @@ public class ScreenCatcherWindow extends JFrame {
 	private void writeKeyInfo(BufferedImage bi, int keyInfo) {
 		int w = bi.getWidth();
 		int h = bi.getHeight();
-		if (w < 240 || h < 120) return;
+		if (w < 240 || h < 120)
+			return;
 		Set<Byte> set = getKeyIndexSet(keyInfo);
 		for (byte index : keyCodes) {
 			if (!set.isEmpty() && set.contains(index)) {
@@ -989,7 +1008,8 @@ public class ScreenCatcherWindow extends JFrame {
 			int scale = ((ScaleItem) cb_scale.getSelectedItem()).getScale();
 			int w = rectangle.width * scale / 100;
 			int h = rectangle.height * scale / 100;
-			lb_size.setText("预计：" + getFormatSize(sizeMap.get(bits) * 5 * ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames() * w * h / 1920 / 1080) + " / 5秒");
+			lb_size.setText(
+					"预计：" + getFormatSize(sizeMap.get(bits) * 5 * ((FPSItem) cb_cutFrames.getSelectedItem()).getFrames() * w * h / 1920 / 1080) + " / 5秒");
 		}
 	}
 
@@ -1116,7 +1136,8 @@ public class ScreenCatcherWindow extends JFrame {
 				}
 			}
 		} else {
-			if ((b.getWidth() - (len / 2)) <= recImage.getWidth() * 2 || (b.getHeight() - (len / 2)) <= recImage.getHeight() * 2) return;
+			if ((b.getWidth() - (len / 2)) <= recImage.getWidth() * 2 || (b.getHeight() - (len / 2)) <= recImage.getHeight() * 2)
+				return;
 			for (int i = recImage.getMinX(); i < recImage.getMinX() + recImage.getWidth(); i++) {
 				for (int j = recImage.getMinY(); j < recImage.getMinY() + recImage.getHeight(); j++) {
 					b.setRGB(i + len / 2, j + len / 2, recImage.getRGB(i, j));
@@ -1157,8 +1178,10 @@ public class ScreenCatcherWindow extends JFrame {
 	private JTextField tf_recordSecond;
 
 	public static String getFormatSize(long bytes) {
-		if (bytes < 1024) return bytes + "B";
-		if (bytes >= 1024 && bytes < 1024 * 1024) return df.format(((double) bytes) / 1024) + "KB";
+		if (bytes < 1024)
+			return bytes + "B";
+		if (bytes >= 1024 && bytes < 1024 * 1024)
+			return df.format(((double) bytes) / 1024) + "KB";
 		return df.format(((double) bytes) / 1024 / 1024) + "MB";
 	}
 
@@ -1236,7 +1259,8 @@ public class ScreenCatcherWindow extends JFrame {
 		}
 
 		public boolean inArea(int x, int y) {
-			if (x1_l == 0 && x2_l == 0 && y1_l == 0 && y2_l == 0) return false;
+			if (x1_l == 0 && x2_l == 0 && y1_l == 0 && y2_l == 0)
+				return false;
 			return (x >= x1_l && x <= x2_l && y >= y1_l && y <= y2_l);
 		}
 
